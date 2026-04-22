@@ -1,0 +1,86 @@
+export interface User {
+  id: number
+  username: string
+  email: string
+  avatar?: string
+  createdAt: string
+}
+
+export interface Prompt {
+  id: number
+  userId: number
+  title: string
+  content: string
+  description?: string
+  categoryId?: number
+  categoryName?: string
+  variablesJson?: Record<string, string>
+  isPublic: boolean
+  usageCount: number
+  tags: Tag[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Category {
+  id: number
+  userId: number
+  name: string
+  parentId?: number
+  sortOrder: number
+  icon?: string
+  color: string
+  children?: Category[]
+  promptCount?: number
+  createdAt: string
+}
+
+export interface Tag {
+  id: number
+  userId: number
+  name: string
+  color: string
+  createdAt: string
+}
+
+export interface PromptHistory {
+  id: number
+  promptId: number
+  content: string
+  version: number
+  createdAt: string
+}
+
+export interface UserSetting {
+  id: number
+  userId: number
+  theme: 'light' | 'dark'
+  defaultModel?: string
+  apiBaseUrl?: string
+  apiKeyEncrypted?: string
+  model?: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  username: string
+  email: string
+  password: string
+}
+
+export interface AuthResponse {
+  accessToken: string
+  refreshToken: string
+  user: User
+}
+
+export interface Result<T> {
+  code: number
+  message: string
+  data: T
+  timestamp: number
+}

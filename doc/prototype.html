@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Vault - 提示词库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'system-ui', 'sans-serif'],
+                        serif: ['Crimson Pro', 'Georgia', 'serif'],
+                        mono: ['"JetBrains Mono"', 'Menlo', 'monospace'],
+                    },
+                    colors: {
+                        surface: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            800: '#292524',
+                            900: '#1c1917',
+                            950: '#0c0a09',
+                        },
+                        accent: {
+                            DEFAULT: '#ea580c',
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        },
+                        ink: {
+                            light: '#44403c',
+                            DEFAULT: '#1c1917',
+                            dark: '#fafaf9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-primary: #fafaf9;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f4;
+            --border-color: #e7e5e4;
+            --text-primary: #1c1917;
+            --text-secondary: #78716c;
+            --text-muted: #a8a29e;
+            --accent: #ea580c;
+            --accent-soft: #fff7ed;
+        }
+
+        .dark {
+            --bg-primary: #0c0a09;
+            --bg-secondary: #1c1917;
+            --bg-tertiary: #292524;
+            --border-color: #44403c;
+            --text-primary: #fafaf9;
+            --text-secondary: #a8a29e;
+            --text-muted: #78716c;
+            --accent: #fb923c;
+            --accent-soft: #451a03;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Outfit', system-ui, sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-slide-in { animation: slideInLeft 0.3s ease-out forwards; }
+        .animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
+
+        /* Variable highlighting */
+        .var-highlight {
+            background: linear-gradient(135deg, var(--accent-soft), transparent);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        /* Glass card effect */
+        .glass-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 24px -8px rgba(234, 88, 12, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Nav item */
+        .nav-item {
+            transition: all 0.15s ease;
+            border-radius: 8px;
+            position: relative;
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: var(--accent);
+            border-radius: 0 2px 2px 0;
+            transition: height 0.2s ease;
+        }
+        .nav-item.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+        .nav-item.active::before { height: 60%; }
+        .nav-item:hover:not(.active) {
+            background: var(--bg-tertiary);
+        }
+
+        /* Input focus ring */
+        .custom-input {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+        .custom-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+        }
+
+        /* Editor textarea */
+        .editor-textarea {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.7;
+            resize: vertical;
+            min-height: 300px;
+        }
+
+        /* Preview panel */
+        .preview-panel {
+            font-family: 'Crimson Pro', Georgia, serif;
+            line-height: 1.8;
+        }
+
+        /* Tag pill */
+        .tag-pill {
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .tag-pill:hover {
+            transform: scale(1.05);
+        }
+
+        /* Tree line */
+        .tree-line {
+            position: absolute;
+            left: 14px;
+            top: 32px;
+            bottom: 0;
+            width: 1.5px;
+            background: var(--border-color);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Category color dots */
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s;
+            border: 2px solid transparent;
+        }
+        .color-dot:hover { transform: scale(1.2); }
+        .color-dot.selected { border-color: var(--text-primary); }
+
+        /* Mobile sidebar */
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 40;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: 35;
+                display: none;
+            }
+            .sidebar-overlay.show { display: block; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- ========== LOGIN PAGE ========== -->
+<div id="page-login" class="page-section min-h-screen flex items-center justify-center relative overflow-hidden">
+    <!-- Decorative background elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-accent-400/10 to-transparent blur-3xl"></div>
+        <div class="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent-600/5 to-transparent blur-3xl"></div>
+        <!-- Grid pattern -->
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle, var(--text-primary) 1px, transparent 1px); background-size: 32px 32px;"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-md px-6">
+        <div class="text-center mb-10 animate-fade-in">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-600 text-white mb-5 shadow-lg shadow-accent-600/20">
+                <i data-lucide="sparkles" class="w-7 h-7"></i>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight mb-2" style="font-family: 'Outfit', sans-serif;">Prompt Vault</h1>
+            <p class="text-sm" style="color: var(--text-secondary);">你的私人提示词库与创作工作台</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8 animate-scale-in" style="animation-delay: 0.1s;">
+            <div class="flex gap-2 mb-6 p-1 rounded-xl" style="background: var(--bg-tertiary);">
+                <button onclick="switchAuth('login')" id="auth-tab-login" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-surface-800 shadow-sm">登录</button>
+                <button onclick="switchAuth('register')" id="auth-tab-register" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all" style="color: var(--text-secondary);">注册</button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">邮箱</label>
+                        <input type="email" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="you@example.com" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">密码</label>
+                        <input type="password" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="••••••••" required>
+                    </div>
+                    <div class="flex items-center justify-between text-xs" style="color: var(--text-secondary);">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded border-gray-300">
+                            <span>记住我</span>
+                        </label>
+                        <a href="#" class="hover:underline" style="color: var(--accent);">忘记密码?</a>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-accent-600 hover:bg-accent-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20 hover:shadow-accent-600/30 active:scale-[0.98]">
+                        登录
+                    </button>
+                </div>
+            </form>
+
+            <form id="register-form" class="hidden" onsubmit="handleLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">用户名</label>
+                        <input type="text" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="你的名字" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">邮箱</label>
+                        <input type="email" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="you@example.com" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">密码</label>
+                        <input type="password" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-accent-600 hover:bg-accent-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20 hover:shadow-accent-600/30 active:scale-[0.98]">
+                        创建账户
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-6 flex items-center justify-center gap-4 text-xs" style="color: var(--text-muted);">
+            <span>或使用</span>
+            <button class="flex items-center gap-2 px-4 py-2 rounded-xl glass-card hover:bg-white/50 dark:hover:bg-surface-800/50 transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                Google
+            </button>
+            <button class="flex items-center gap-2 px-4 py-2 rounded-xl glass-card hover:bg-white/50 dark:hover:bg-surface-800/50 transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                GitHub
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MAIN APP (Dashboard + all pages) ========== -->
+<div id="page-app" class="page-section hidden min-h-screen flex">
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 flex-shrink-0 flex flex-col h-screen sticky top-0" style="background: var(--bg-secondary); border-right: 1px solid var(--border-color);">
+        <!-- Logo -->
+        <div class="p-5 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-accent-600 text-white flex items-center justify-center shadow-md shadow-accent-600/20">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight">Prompt Vault</span>
+            <button class="lg:hidden ml-auto" onclick="toggleSidebar()">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+            <div class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2" style="color: var(--text-muted);">工作区</div>
+            <a href="#" onclick="navigate('dashboard')" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium">
+                <i data-lucide="layout-dashboard" class="w-4.5 h-4.5"></i>
+                控制台
+            </a>
+            <a href="#" onclick="navigate('prompts')" id="nav-prompts" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium" style="color: var(--text-secondary);">
+                <i data-lucide="file-text" class="w-4.5 h-4.5"></i>
+                提示词库
+            </a>
+            <a href="#" onclick="navigate('editor')" id="nav-editor" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium" style="color: var(--text-secondary);">
+                <i data-lucide="pen-tool" class="w-4.5 h-4.5"></i>
+                新建提示词
+            </a>
+
+            <div class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2 mt-4" style="color: var(--text-muted);">管理</div>
+            <a href="#" onclick="navigate('categories')" id="nav-categories" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium" style="color: var(--text-secondary);">
+                <i data-lucide="folder-tree" class="w-4.5 h-4.5"></i>
+                分类管理
+            </a>
+            <a href="#" onclick="navigate('settings')" id="nav-settings" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium" style="color: var(--text-secondary);">
+                <i data-lucide="settings" class="w-4.5 h-4.5"></i>
+                设置
+            </a>
+        </nav>
+
+        <!-- User section -->
+        <div class="p-4 mx-3 mb-3 rounded-xl" style="background: var(--bg-tertiary);">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 text-white flex items-center justify-center text-sm font-bold">
+                    L
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">Liam Chen</div>
+                    <div class="text-xs truncate" style="color: var(--text-muted);">Pro 计划</div>
+                </div>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors hover:bg-white/50 dark:hover:bg-black/20" style="color: var(--text-secondary);">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                退出登录
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <!-- Top header -->
+        <header class="h-16 flex items-center gap-4 px-6 sticky top-0 z-30" style="background: var(--bg-primary); border-bottom: 1px solid var(--border-color);">
+            <button class="lg:hidden" onclick="toggleSidebar()">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Search -->
+            <div class="flex-1 max-w-xl relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style="color: var(--text-muted);"></i>
+                <input type="text" id="global-search" class="custom-input w-full pl-10 pr-4 py-2 rounded-xl text-sm" placeholder="搜索提示词、标签、内容..."
+                       oninput="handleSearch(this.value)">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Theme toggle -->
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800" style="color: var(--text-secondary);">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+                <!-- Notifications -->
+                <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800 relative" style="color: var(--text-secondary);">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-500"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable content -->
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8">
+
+            <!-- ===== DASHBOARD ===== -->
+            <div id="view-dashboard" class="view-section animate-fade-in">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-1">早上好, Liam</h2>
+                    <p class="text-sm" style="color: var(--text-secondary);">今天准备创作什么?</p>
+                </div>
+
+                <!-- Stats cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                    <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-accent-400/10 to-transparent rounded-bl-full"></div>
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-accent-50 dark:bg-accent-900/30 flex items-center justify-center">
+                                <i data-lucide="file-text" class="w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+                            </div>
+                            <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+12%</span>
+                        </div>
+                        <div class="text-2xl font-bold mb-0.5">128</div>
+                        <div class="text-xs" style="color: var(--text-muted);">提示词总数</div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-400/10 to-transparent rounded-bl-full"></div>
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                <i data-lucide="folder-open" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+3</span>
+                        </div>
+                        <div class="text-2xl font-bold mb-0.5">14</div>
+                        <div class="text-xs" style="color: var(--text-muted);">分类数量</div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-400/10 to-transparent rounded-bl-full"></div>
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                                <i data-lucide="zap" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+28%</span>
+                        </div>
+                        <div class="text-2xl font-bold mb-0.5">42</div>
+                        <div class="text-xs" style="color: var(--text-muted);">本周使用次数</div>
+                    </div>
+                </div>
+
+                <!-- Recent prompts -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="font-semibold">最近编辑</h3>
+                        <a href="#" onclick="navigate('prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent);">查看全部</a>
+                    </div>
+                    <div class="space-y-3" id="recent-prompts-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PROMPTS LIST ===== -->
+            <div id="view-prompts" class="view-section hidden animate-fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1">提示词库</h2>
+                        <p class="text-sm" style="color: var(--text-secondary);">管理你的所有提示词模板</p>
+                    </div>
+                    <button onclick="navigate('editor')" class="flex items-center gap-2 px-4 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        新建提示词
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                    <select class="custom-input px-3 py-2 rounded-lg text-sm min-w-[140px]">
+                        <option>所有分类</option>
+                        <option>写作助手</option>
+                        <option>编程开发</option>
+                        <option>数据分析</option>
+                    </select>
+                    <div class="flex items-center gap-2 flex-wrap" id="filter-tags">
+                        <button class="tag-pill px-3 py-1.5 text-xs font-medium rounded-lg border transition-all" style="border-color: var(--border-color); color: var(--text-secondary);">
+                            #chatgpt
+                        </button>
+                        <button class="tag-pill px-3 py-1.5 text-xs font-medium rounded-lg border transition-all" style="border-color: var(--border-color); color: var(--text-secondary);">
+                            #claude
+                        </button>
+                        <button class="tag-pill px-3 py-1.5 text-xs font-medium rounded-lg border transition-all" style="border-color: var(--border-color); color: var(--text-secondary);">
+                            #写作
+                        </button>
+                        <button class="tag-pill px-3 py-1.5 text-xs font-medium rounded-lg border transition-all" style="border-color: var(--border-color); color: var(--text-secondary);">
+                            #代码
+                        </button>
+                    </div>
+                    <div class="ml-auto flex items-center gap-2">
+                        <select class="custom-input px-3 py-2 rounded-lg text-sm">
+                            <option>最近更新</option>
+                            <option>使用最多</option>
+                            <option>名称排序</option>
+                        </select>
+                        <div class="flex rounded-lg overflow-hidden border" style="border-color: var(--border-color);">
+                            <button class="px-3 py-2 bg-accent-50 dark:bg-accent-900/30" style="color: var(--accent);"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+                            <button class="px-3 py-2" style="color: var(--text-muted);"><i data-lucide="list" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompts grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="prompts-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- ===== PROMPT EDITOR ===== -->
+            <div id="view-editor" class="view-section hidden animate-fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1">新建提示词</h2>
+                        <p class="text-sm" style="color: var(--text-secondary);">创建并测试你的提示词模板</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="savePrompt()" class="flex items-center gap-2 px-4 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            保存
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Editor panel -->
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">标题</label>
+                            <input type="text" id="editor-title" class="custom-input w-full px-4 py-3 rounded-xl text-base font-medium" placeholder="给你的提示词起个名字...">
+                        </div>
+
+                        <div class="flex gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">分类</label>
+                                <select id="editor-category" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm">
+                                    <option>写作助手</option>
+                                    <option>编程开发</option>
+                                    <option>数据分析</option>
+                                    <option>创意生成</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">标签</label>
+                                <input type="text" id="editor-tags" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="用逗号分隔">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-xs font-medium" style="color: var(--text-secondary);">提示词内容</label>
+                                <span class="text-[10px] px-2 py-1 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted);">
+                                    使用 <code class="var-highlight">{{变量名}}</code> 插入变量
+                                </span>
+                            </div>
+                            <textarea id="editor-content" class="custom-input w-full px-4 py-4 rounded-xl editor-textarea"
+                                      placeholder="在这里输入你的提示词模板...&#10;&#10;例如:&#10;你是一位专业的{{role}}，请帮我{{task}}。要求如下:&#10;1. {{requirement1}}&#10;2. {{requirement2}}"
+                                      oninput="updatePreview()"></textarea>
+                        </div>
+
+                        <!-- Variable inputs -->
+                        <div id="variable-section" class="hidden">
+                            <label class="block text-xs font-medium mb-3" style="color: var(--text-secondary);">填写变量值</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="variable-inputs">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 pt-2">
+                            <button onclick="testPrompt()" class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
+                                    style="border-color: var(--accent); color: var(--accent);">
+                                <i data-lucide="play" class="w-4 h-4"></i>
+                                测试运行
+                            </button>
+                            <button onclick="clearEditor()" class="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-surface-200 dark:hover:bg-surface-800" style="color: var(--text-secondary);">
+                                清空
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Preview panel -->
+                    <div>
+                        <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">实时预览</label>
+                        <div class="glass-card rounded-2xl p-6 min-h-[400px] preview-panel relative">
+                            <div class="absolute top-4 right-4">
+                                <button onclick="copyPreview()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-surface-200 dark:hover:bg-surface-800" style="color: var(--text-muted); border: 1px solid var(--border-color);">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                    复制
+                                </button>
+                            </div>
+                            <div id="preview-content" class="pt-8 text-base" style="white-space: pre-wrap;">
+                                <span class="italic" style="color: var(--text-muted);">提示词预览将在这里显示...</span>
+                            </div>
+                        </div>
+
+                        <!-- AI Test Result -->
+                        <div id="ai-result-panel" class="hidden mt-5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-2 h-2 rounded-full bg-accent-500 animate-pulse"></div>
+                                <label class="text-xs font-medium" style="color: var(--accent);">AI 响应</label>
+                            </div>
+                            <div class="glass-card rounded-2xl p-5 min-h-[120px]" style="background: var(--accent-soft);">
+                                <div id="ai-result-content" class="text-sm leading-relaxed" style="color: var(--text-primary);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== CATEGORIES ===== -->
+            <div id="view-categories" class="view-section hidden animate-fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1">分类管理</h2>
+                        <p class="text-sm" style="color: var(--text-secondary);">组织你的提示词结构</p>
+                    </div>
+                    <button onclick="showAddCategoryModal()" class="flex items-center gap-2 px-4 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        新建分类
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Category tree -->
+                    <div class="lg:col-span-2 glass-card rounded-2xl p-6">
+                        <div id="category-tree" class="space-y-1">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Quick stats -->
+                    <div class="space-y-5">
+                        <div class="glass-card rounded-2xl p-5">
+                            <h4 class="text-sm font-semibold mb-4">分类统计</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs" style="color: var(--text-secondary);">一级分类</span>
+                                    <span class="text-sm font-semibold">5</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs" style="color: var(--text-secondary);">子分类</span>
+                                    <span class="text-sm font-semibold">9</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs" style="color: var(--text-secondary);">未分类提示词</span>
+                                    <span class="text-sm font-semibold">3</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card rounded-2xl p-5">
+                            <h4 class="text-sm font-semibold mb-3">使用最多的分类</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    <span class="text-xs flex-1">编程开发</span>
+                                    <span class="text-xs font-medium">42</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span class="text-xs flex-1">写作助手</span>
+                                    <span class="text-xs font-medium">35</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                                    <span class="text-xs flex-1">数据分析</span>
+                                    <span class="text-xs font-medium">28</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SETTINGS ===== -->
+            <div id="view-settings" class="view-section hidden animate-fade-in">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold mb-1">设置</h2>
+                    <p class="text-sm" style="color: var(--text-secondary);">管理你的账户与应用偏好</p>
+                </div>
+
+                <div class="max-w-2xl space-y-6">
+                    <!-- Profile -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="font-semibold mb-5 flex items-center gap-2">
+                            <i data-lucide="user" class="w-4 h-4" style="color: var(--accent);"></i>
+                            个人信息
+                        </h3>
+                        <div class="flex items-center gap-4 mb-5">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 text-white flex items-center justify-center text-xl font-bold">
+                                L
+                            </div>
+                            <div>
+                                <button class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-surface-100 dark:hover:bg-surface-800" style="border-color: var(--border-color);">
+                                    更换头像
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">用户名</label>
+                                <input type="text" value="Liam Chen" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">邮箱</label>
+                                <input type="email" value="liam@example.com" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Integration -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="font-semibold mb-5 flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4" style="color: var(--accent);"></i>
+                            AI 集成
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">默认模型</label>
+                                <select class="custom-input w-full px-4 py-2.5 rounded-xl text-sm">
+                                    <option>OpenAI GPT-4</option>
+                                    <option>Claude 3.5 Sonnet</option>
+                                    <option>Anthropic Claude 3</option>
+                                    <option>文心一言 4.0</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">OpenAI API Key</label>
+                                <div class="relative">
+                                    <input type="password" id="api-key-input" value="sk-xxxxxxxxxxxxxxxx" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm pr-10 font-mono">
+                                    <button onclick="toggleApiKey()" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: var(--text-muted);">
+                                        <i data-lucide="eye" id="api-key-icon" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <p class="text-[10px] mt-1.5" style="color: var(--text-muted);">你的 API Key 将加密存储，仅用于代理请求</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="font-semibold mb-5 flex items-center gap-2">
+                            <i data-lucide="palette" class="w-4 h-4" style="color: var(--accent);"></i>
+                            外观
+                        </h3>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium mb-0.5">深色模式</div>
+                                <div class="text-xs" style="color: var(--text-muted);">切换浅色/深色主题</div>
+                            </div>
+                            <button onclick="toggleTheme()" class="relative w-12 h-7 rounded-full transition-colors" id="theme-toggle-btn" style="background: var(--bg-tertiary);">
+                                <span class="absolute left-1 top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform dark:translate-x-5 flex items-center justify-center">
+                                    <i data-lucide="sun" class="w-3 h-3 text-amber-500 dark:hidden"></i>
+                                    <i data-lucide="moon" class="w-3 h-3 text-indigo-500 hidden dark:block"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="font-semibold mb-5 flex items-center gap-2">
+                            <i data-lucide="database" class="w-4 h-4" style="color: var(--accent);"></i>
+                            数据管理
+                        </h3>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="exportData('json')" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800" style="border-color: var(--border-color);">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                导出 JSON
+                            </button>
+                            <button onclick="exportData('markdown')" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800" style="border-color: var(--border-color);">
+                                <i data-lucide="file-down" class="w-4 h-4"></i>
+                                导出 Markdown
+                            </button>
+                            <button class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800" style="border-color: var(--border-color);">
+                                <i data-lucide="upload" class="w-4 h-4"></i>
+                                导入数据
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Add Category Modal -->
+<div id="modal-category" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('modal-category')">
+    <div class="glass-card rounded-2xl p-6 w-full max-w-md animate-scale-in">
+        <h3 class="font-semibold text-lg mb-4">新建分类</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">分类名称</label>
+                <input type="text" id="new-cat-name" class="custom-input w-full px-4 py-2.5 rounded-xl text-sm" placeholder="输入分类名称">
+            </div>
+            <div>
+                <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">颜色</label>
+                <div class="flex gap-2 flex-wrap">
+                    <div class="color-dot selected" style="background: #ea580c;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #3b82f6;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #8b5cf6;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #10b981;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #f59e0b;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #ef4444;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #ec4899;" onclick="selectColor(this)"></div>
+                    <div class="color-dot" style="background: #6366f1;" onclick="selectColor(this)"></div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary);">父分类 (可选)</label>
+                <select class="custom-input w-full px-4 py-2.5 rounded-xl text-sm">
+                    <option>无 (作为一级分类)</option>
+                    <option>写作助手</option>
+                    <option>编程开发</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="hideModal('modal-category')" class="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-surface-200 dark:hover:bg-surface-800" style="color: var(--text-secondary);">取消</button>
+            <button onclick="addCategory()" class="flex-1 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-xl transition-all">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ===== DATA =====
+const prompts = [
+    {
+        id: 1,
+        title: "SEO文章创作助手",
+        content: "你是一位专业的SEO内容写手。请围绕关键词\"{{keyword}}\"撰写一篇{{wordCount}}字的文章。目标受众是{{audience}}。要求：1. 标题吸引人且包含关键词 2. 结构清晰，使用H2/H3标签 3. 内容实用、有深度 4. 结尾包含行动号召",
+        category: "写作助手",
+        tags: ["seo", "写作", "chatgpt"],
+        usageCount: 24,
+        updatedAt: "2小时前",
+        color: "#ea580c"
+    },
+    {
+        id: 2,
+        title: "代码审查专家",
+        content: "你是一位资深{{language}}开发工程师。请审查以下代码，重点关注：1. 潜在的性能问题 2. 安全漏洞 3. 代码可读性和最佳实践 4. 是否有更优雅的实现方式。请逐行分析并给出改进建议。\n\n```\n{{code}}\n```",
+        category: "编程开发",
+        tags: ["代码", "claude", "开发"],
+        usageCount: 18,
+        updatedAt: "昨天",
+        color: "#3b82f6"
+    },
+    {
+        id: 3,
+        title: "数据可视化分析师",
+        content: "你是一位数据可视化专家。我有一组关于{{topic}}的数据，请帮我：\n1. 推荐最适合的图表类型\n2. 提供使用{{tool}}的完整代码\n3. 解释为什么选择这种可视化方式\n4. 给出美化建议\n\n数据描述：{{dataDesc}}",
+        category: "数据分析",
+        tags: ["数据", "可视化", "python"],
+        usageCount: 12,
+        updatedAt: "3天前",
+        color: "#8b5cf6"
+    },
+    {
+        id: 4,
+        title: "产品需求文档生成器",
+        content: "请为\"{{productName}}\"生成一份完整的产品需求文档(PRD)，包含以下部分：\n\n## 1. 产品概述\n- 背景与目标\n- 目标用户画像\n\n## 2. 功能需求\n{{features}}\n\n## 3. 非功能需求\n- 性能要求\n- 安全要求\n\n## 4. 验收标准",
+        category: "产品经理",
+        tags: ["prd", "产品", "文档"],
+        usageCount: 8,
+        updatedAt: "1周前",
+        color: "#10b981"
+    },
+    {
+        id: 5,
+        title: "学术论文润色",
+        content: "你是一位学术写作专家。请帮我润色以下论文段落，要求：\n1. 提升语言的学术性和严谨性\n2. 优化句子结构和逻辑连贯性\n3. 检查语法和标点错误\n4. 保持原意不变\n\n领域：{{field}}\n\n原文：\n{{text}}",
+        category: "写作助手",
+        tags: ["学术", "写作", "润色"],
+        usageCount: 31,
+        updatedAt: "5小时前",
+        color: "#ea580c"
+    },
+    {
+        id: 6,
+        title: "React组件生成",
+        content: "请用React和Tailwind CSS创建一个{{componentType}}组件，要求：\n1. 支持{{props}}等props\n2. 包含完整的TypeScript类型定义\n3. 添加必要的注释\n4. 考虑可访问性(ARIA)\n5. 提供使用示例\n\n组件名称：{{componentName}}",
+        category: "编程开发",
+        tags: ["react", "前端", "代码"],
+        usageCount: 15,
+        updatedAt: "2天前",
+        color: "#3b82f6"
+    }
+];
+
+const categories = [
+    { id: 1, name: "写作助手", color: "#ea580c", icon: "pen-tool", count: 32, children: [
+        { id: 11, name: "SEO写作", color: "#ea580c", count: 8 },
+        { id: 12, name: "学术写作", color: "#ea580c", count: 12 }
+    ]},
+    { id: 2, name: "编程开发", color: "#3b82f6", icon: "code-2", count: 45, children: [
+        { id: 21, name: "前端开发", color: "#3b82f6", count: 20 },
+        { id: 22, name: "后端开发", color: "#3b82f6", count: 15 },
+        { id: 23, name: "DevOps", color: "#3b82f6", count: 10 }
+    ]},
+    { id: 3, name: "数据分析", color: "#8b5cf6", icon: "bar-chart-3", count: 18, children: [] },
+    { id: 4, name: "产品经理", color: "#10b981", icon: "briefcase", count: 12, children: [] },
+    { id: 5, name: "创意生成", color: "#f59e0b", icon: "lightbulb", count: 21, children: [
+        { id: 51, name: "图像提示词", color: "#f59e0b", count: 15 }
+    ]}
+];
+
+// ===== STATE =====
+let currentView = 'dashboard';
+let sidebarOpen = false;
+let selectedCategoryColor = '#ea580c';
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    renderRecentPrompts();
+    renderPromptsGrid();
+    renderCategoryTree();
+    checkTheme();
+});
+
+// ===== THEME =====
+function checkTheme() {
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    }
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+}
+
+// ===== AUTH =====
+function switchAuth(mode) {
+    const loginTab = document.getElementById('auth-tab-login');
+    const registerTab = document.getElementById('auth-tab-register');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    if (mode === 'login') {
+        loginTab.className = 'flex-1 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-surface-800 shadow-sm';
+        registerTab.className = 'flex-1 py-2 text-sm font-medium rounded-lg transition-all';
+        registerTab.style.color = 'var(--text-secondary)';
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+    } else {
+        registerTab.className = 'flex-1 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-surface-800 shadow-sm';
+        loginTab.className = 'flex-1 py-2 text-sm font-medium rounded-lg transition-all';
+        loginTab.style.color = 'var(--text-secondary)';
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+    }
+}
+
+function handleLogin(e) {
+    e.preventDefault();
+    document.getElementById('page-login').classList.add('hidden');
+    document.getElementById('page-app').classList.remove('hidden');
+    showToast('登录成功，欢迎回来！', 'check-circle');
+}
+
+function logout() {
+    document.getElementById('page-app').classList.add('hidden');
+    document.getElementById('page-login').classList.remove('hidden');
+    showToast('已安全退出', 'log-out');
+}
+
+// ===== NAVIGATION =====
+function navigate(view) {
+    currentView = view;
+
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`view-${view}`).classList.remove('hidden');
+
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('active');
+        el.style.color = 'var(--text-secondary)';
+    });
+    const activeNav = document.getElementById(`nav-${view}`);
+    if (activeNav) {
+        activeNav.classList.add('active');
+        activeNav.style.color = '';
+    }
+
+    // Close mobile sidebar
+    if (window.innerWidth < 1024) {
+        toggleSidebar();
+    }
+
+    // Re-render icons for new content
+    setTimeout(() => lucide.createIcons(), 10);
+}
+
+function toggleSidebar() {
+    sidebarOpen = !sidebarOpen;
+    document.querySelector('.sidebar').classList.toggle('open', sidebarOpen);
+    document.querySelector('.sidebar-overlay').classList.toggle('show', sidebarOpen);
+}
+
+// ===== RENDERERS =====
+function renderRecentPrompts() {
+    const container = document.getElementById('recent-prompts-list');
+    const recent = prompts.slice(0, 4);
+    container.innerHTML = recent.map(p => `
+        <div class="flex items-center gap-4 p-3 rounded-xl transition-colors hover:bg-surface-100 dark:hover:bg-surface-800 cursor-pointer group"
+             style="border: 1px solid transparent;" onmouseover="this.style.borderColor='var(--border-color)'" onmouseout="this.style.borderColor='transparent'">
+            <div class="w-2 h-2 rounded-full flex-shrink-0" style="background: ${p.color};"></div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">${p.title}</div>
+                <div class="text-xs truncate" style="color: var(--text-muted);">${p.category} · ${p.updatedAt}</div>
+            </div>
+            <button onclick="copyPrompt(${p.id}, event)" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700" style="color: var(--text-muted);">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    `).join('');
+    lucide.createIcons();
+}
+
+function renderPromptsGrid() {
+    const container = document.getElementById('prompts-grid');
+    container.innerHTML = prompts.map(p => {
+        const preview = p.content.substring(0, 80).replace(/\{\{(\w+)\}\}/g, '<span class="var-highlight">{{$1}}</span>') + '...';
+        return `
+        <div class="glass-card rounded-2xl p-5 flex flex-col group">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full" style="background: ${p.color};"></div>
+                    <span class="text-[10px] font-medium uppercase tracking-wider" style="color: var(--text-muted);">${p.category}</span>
+                </div>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="editPrompt(${p.id})" class="p-1.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors" style="color: var(--text-muted);">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="deletePrompt(${p.id})" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" style="color: var(--text-muted);">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 hover:text-red-500"></i>
+                    </button>
+                </div>
+            </div>
+            <h3 class="font-semibold mb-2 text-base">${p.title}</h3>
+            <p class="text-sm leading-relaxed mb-4 flex-1 preview-panel" style="color: var(--text-secondary);">${preview}</p>
+            <div class="flex items-center justify-between pt-3" style="border-top: 1px solid var(--border-color);">
+                <div class="flex gap-1.5 flex-wrap">
+                    ${p.tags.map(t => `<span class="text-[10px] px-2 py-0.5 rounded-md font-medium" style="background: var(--bg-tertiary); color: var(--text-muted);">#${t}</span>`).join('')}
+                </div>
+                <button onclick="copyPrompt(${p.id}, event)" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-accent-50 dark:hover:bg-accent-900/30" style="color: var(--accent);">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    复制
+                </button>
+            </div>
+        </div>
+    `}).join('');
+    lucide.createIcons();
+}
+
+function renderCategoryTree() {
+    const container = document.getElementById('category-tree');
+
+    function renderNode(cat, level = 0) {
+        const hasChildren = cat.children && cat.children.length > 0;
+        const indent = level * 24;
+        return `
+            <div class="relative" style="padding-left: ${indent}px;">
+                <div class="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors hover:bg-surface-100 dark:hover:bg-surface-800 group cursor-pointer"
+                     onclick="${hasChildren ? `toggleTreeNode(${cat.id})` : ''}">
+                    ${hasChildren ? `
+                        <button class="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-700 flex-shrink-0"
+                                id="tree-toggle-${cat.id}">
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5 transition-transform" style="color: var(--text-muted);"></i>
+                        </button>
+                    ` : '<div class="w-5 h-5 flex-shrink-0"></div>'}
+                    <div class="w-3 h-3 rounded-full flex-shrink-0" style="background: ${cat.color};"></div>
+                    <span class="text-sm font-medium flex-1">${cat.name}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-tertiary); color: var(--text-muted);">${cat.count}</span>
+                    <div class="hidden group-hover:flex items-center gap-1">
+                        <button class="p-1 rounded hover:bg-surface-200 dark:hover:bg-surface-700" style="color: var(--text-muted);">
+                            <i data-lucide="pencil" class="w-3 h-3"></i>
+                        </button>
+                        <button class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30" style="color: var(--text-muted);">
+                            <i data-lucide="trash-2" class="w-3 h-3 hover:text-red-500"></i>
+                        </button>
+                    </div>
+                </div>
+                ${hasChildren ? `
+                    <div class="hidden ml-6" id="tree-children-${cat.id}" style="position: relative;">
+                        <div class="tree-line"></div>
+                        ${cat.children.map(child => renderNode(child, 1)).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    container.innerHTML = categories.map(cat => renderNode(cat)).join('');
+    lucide.createIcons();
+}
+
+function toggleTreeNode(id) {
+    const children = document.getElementById(`tree-children-${id}`);
+    const toggle = document.getElementById(`tree-toggle-${id}`);
+    if (children) {
+        children.classList.toggle('hidden');
+        const icon = toggle.querySelector('i');
+        icon.style.transform = children.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
+}
+
+// ===== EDITOR =====
+function updatePreview() {
+    const content = document.getElementById('editor-content').value;
+    const previewEl = document.getElementById('preview-content');
+    const varSection = document.getElementById('variable-section');
+    const varInputs = document.getElementById('variable-inputs');
+
+    // Extract variables
+    const vars = [...content.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]);
+    const uniqueVars = [...new Set(vars)];
+
+    if (uniqueVars.length > 0) {
+        varSection.classList.remove('hidden');
+
+        // Build variable input forms
+        const existingValues = {};
+        document.querySelectorAll('#variable-inputs input').forEach(input => {
+            existingValues[input.dataset.var] = input.value;
+        });
+
+        varInputs.innerHTML = uniqueVars.map(v => `
+            <div>
+                <label class="block text-[10px] font-medium uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">${v}</label>
+                <input type="text" data-var="${v}" class="custom-input w-full px-3 py-2 rounded-lg text-sm"
+                       placeholder="输入 ${v}..." value="${existingValues[v] || ''}" oninput="updatePreviewValues()">
+            </div>
+        `).join('');
+    } else {
+        varSection.classList.add('hidden');
+    }
+
+    updatePreviewValues();
+}
+
+function updatePreviewValues() {
+    const content = document.getElementById('editor-content').value;
+    const previewEl = document.getElementById('preview-content');
+
+    let preview = content;
+    document.querySelectorAll('#variable-inputs input').forEach(input => {
+        const regex = new RegExp(`\\{\\{${input.dataset.var}\\}\\}`, 'g');
+        preview = preview.replace(regex, input.value || `{{${input.dataset.var}}}`);
+    });
+
+    // Highlight remaining vars
+    preview = preview.replace(/\{\{(\w+)\}\}/g, '<span class="var-highlight">{{$1}}</span>');
+
+    previewEl.innerHTML = preview || '<span class="italic" style="color: var(--text-muted);">提示词预览将在这里显示...</span>';
+}
+
+function copyPreview() {
+    const content = document.getElementById('preview-content').innerText;
+    navigator.clipboard.writeText(content).then(() => {
+        showToast('已复制到剪贴板', 'check-circle');
+    });
+}
+
+function copyPrompt(id, event) {
+    if (event) event.stopPropagation();
+    const prompt = prompts.find(p => p.id === id);
+    if (prompt) {
+        navigator.clipboard.writeText(prompt.content).then(() => {
+            showToast(`"${prompt.title}" 已复制`, 'check-circle');
+        });
+    }
+}
+
+function editPrompt(id) {
+    const prompt = prompts.find(p => p.id === id);
+    if (prompt) {
+        document.getElementById('editor-title').value = prompt.title;
+        document.getElementById('editor-content').value = prompt.content;
+        document.getElementById('editor-category').value = prompt.category;
+        document.getElementById('editor-tags').value = prompt.tags.join(', ');
+        navigate('editor');
+        updatePreview();
+    }
+}
+
+function deletePrompt(id) {
+    const prompt = prompts.find(p => p.id === id);
+    if (confirm(`确定要删除 "${prompt.title}" 吗？`)) {
+        showToast(`"${prompt.title}" 已删除`, 'trash-2');
+        // In real app, remove from array and re-render
+    }
+}
+
+function savePrompt() {
+    const title = document.getElementById('editor-title').value;
+    if (!title) {
+        showToast('请输入提示词标题', 'alert-circle');
+        return;
+    }
+    showToast('提示词已保存', 'check-circle');
+    setTimeout(() => navigate('prompts'), 500);
+}
+
+function clearEditor() {
+    document.getElementById('editor-title').value = '';
+    document.getElementById('editor-content').value = '';
+    document.getElementById('editor-tags').value = '';
+    updatePreview();
+}
+
+function testPrompt() {
+    const resultPanel = document.getElementById('ai-result-panel');
+    const resultContent = document.getElementById('ai-result-content');
+
+    resultPanel.classList.remove('hidden');
+    resultContent.innerHTML = '<span class="animate-pulse">正在思考...</span>';
+
+    setTimeout(() => {
+        resultContent.innerHTML = `这是一个模拟的 AI 响应。在实际应用中，这里会显示调用 OpenAI/Claude API 后返回的流式结果。<br><br>您的提示词结构清晰，变量使用得当。建议可以在结尾处增加一个输出格式的示例，这样能让模型更好地理解您的期望格式。`;
+    }, 1500);
+}
+
+// ===== CATEGORIES =====
+function showAddCategoryModal() {
+    document.getElementById('modal-category').classList.remove('hidden');
+}
+
+function hideModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+function selectColor(el) {
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedCategoryColor = el.style.background;
+}
+
+function addCategory() {
+    const name = document.getElementById('new-cat-name').value;
+    if (!name) {
+        showToast('请输入分类名称', 'alert-circle');
+        return;
+    }
+    hideModal('modal-category');
+    showToast(`分类 "${name}" 已创建`, 'folder-plus');
+    document.getElementById('new-cat-name').value = '';
+}
+
+// ===== SETTINGS =====
+function toggleApiKey() {
+    const input = document.getElementById('api-key-input');
+    const icon = document.getElementById('api-key-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+    } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+    }
+    lucide.createIcons();
+}
+
+function exportData(format) {
+    if (format === 'json') {
+        const data = JSON.stringify({ prompts, categories }, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'prompt-vault-export.json';
+        a.click();
+        showToast('JSON 文件已导出', 'download');
+    } else {
+        showToast('Markdown 导出功能开发中', 'file-text');
+    }
+}
+
+// ===== SEARCH =====
+function handleSearch(query) {
+    if (!query) {
+        renderPromptsGrid();
+        return;
+    }
+    const filtered = prompts.filter(p =>
+        p.title.toLowerCase().includes(query.toLowerCase()) ||
+        p.content.toLowerCase().includes(query.toLowerCase()) ||
+        p.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
+    );
+    // Re-render with filtered data (simplified for prototype)
+    if (filtered.length === 0) {
+        document.getElementById('prompts-grid').innerHTML = `
+            <div class="col-span-full text-center py-16">
+                <i data-lucide="search-x" class="w-10 h-10 mx-auto mb-3" style="color: var(--text-muted);"></i>
+                <p class="text-sm" style="color: var(--text-muted);">没有找到匹配的提示词</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+}
+
+// ===== TOAST =====
+function showToast(message, icon = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4" style="color: var(--accent);"></i>
+        <span class="text-sm">${message}</span>
+    `;
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+</script>
+</body>
+</html>
