@@ -20,6 +20,7 @@ const description = ref('')
 const categoryId = ref<number | null>(null)
 const selectedTagIds = ref<number[]>([])
 const newTagInput = ref('')
+const tagInputFocused = ref(false)
 
 const categories = ref<Category[]>([])
 const tags = ref<Tag[]>([])
@@ -263,9 +264,11 @@ onMounted(() => {
             </div>
             <div class="flex-1">
               <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">标签</label>
-              <div class="flex flex-wrap gap-1 mb-2">
+              <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 rounded-lg text-sm transition-all"
+                :style="{ borderColor: tagInputFocused ? 'var(--accent)' : 'var(--border-color)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
+              >
                 <span v-for="tagId in selectedTagIds" :key="tagId"
-                  class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md"
+                  class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md shrink-0"
                   style="background: var(--accent-soft); color: var(--accent);"
                 >
                   {{ tags.find(t => t.id === tagId)?.name || tagId }}
@@ -273,15 +276,13 @@ onMounted(() => {
                     <X class="w-3 h-3" />
                   </button>
                 </span>
-              </div>
-              <div class="flex gap-2">
                 <input v-model="newTagInput" type="text"
-                  class="flex-1 px-3 py-2 rounded-lg text-sm transition-all"
-                  style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                  class="flex-1 min-w-[80px] px-2 py-1 bg-transparent text-sm outline-none"
+                  style="color: var(--text-primary);"
                   placeholder="输入标签名按回车"
                   @keyup.enter="handleAddTag"
-                  @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
-                  @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
+                  @focus="tagInputFocused = true"
+                  @blur="tagInputFocused = false"
                 >
               </div>
             </div>
