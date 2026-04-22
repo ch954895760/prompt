@@ -28,7 +28,7 @@ async function loadData() {
   loading.value = true
   try {
     const [pRes, cList, tList] = await Promise.all([
-      getPrompts({ current: currentPage.value, size: pageSize.value, categoryId: selectedCategory.value || undefined, keyword: searchKeyword.value || undefined }),
+      getPrompts({ current: currentPage.value, size: pageSize.value, categoryId: selectedCategory.value || undefined, tagId: selectedTag.value || undefined, keyword: searchKeyword.value || undefined }),
       getCategoryList(),
       getTags(),
     ])
@@ -73,6 +73,7 @@ function handleCategoryChange(catId: number | null) {
 function handleTagChange(tagId: number | null) {
   selectedTag.value = tagId === selectedTag.value ? null : tagId
   currentPage.value = 1
+  loadData()
 }
 
 watch(() => route.query.q, (q) => {

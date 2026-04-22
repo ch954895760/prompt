@@ -19,4 +19,7 @@ public interface PromptTagMapper {
 
     @Select("SELECT tag_id FROM prompt_tag WHERE prompt_id = #{promptId}")
     List<Long> selectTagIdsByPromptId(@Param("promptId") Long promptId);
+
+    @Select("SELECT prompt_id FROM prompt_tag WHERE tag_id = #{tagId}")
+    List<Long> selectPromptIdsByTagId(@Param("tagId") Long tagId);
 }

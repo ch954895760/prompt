@@ -37,10 +37,11 @@ public class PromptController {
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) String keyword,
             Authentication authentication) {
         Page<Prompt> page = new Page<>(current, size);
-        return Result.success(promptService.page(getCurrentUserId(authentication), categoryId, keyword, page));
+        return Result.success(promptService.page(getCurrentUserId(authentication), categoryId, tagId, keyword, page));
     }
 
     @GetMapping("/list")

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 import type { Prompt } from '@/types'
 
-export function getPrompts(params: { current?: number; size?: number; categoryId?: number; keyword?: string }): Promise<{ records: Prompt[]; total: number }> {
+export function getPrompts(params: { current?: number; size?: number; categoryId?: number; tagId?: number; keyword?: string }): Promise<{ records: Prompt[]; total: number }> {
   return request.get('/prompts', { params })
 }
 

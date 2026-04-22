@@ -37,11 +37,18 @@ public class PromptService {
     private final CategoryMapper categoryMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Page<Prompt> page(Long userId, Long categoryId, String keyword, Page<Prompt> page) {
+    public Page<Prompt> page(Long userId, Long categoryId, Long tagId, String keyword, Page<Prompt> page) {
         LambdaQueryWrapper<Prompt> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Prompt::getUserId, userId);
         if (categoryId != null) {
             wrapper.eq(Prompt::getCategoryId, categoryId);
+        }
+        if (tagId != null) {
+            List<Long> promptIds = promptTagMapper.selectPromptIdsByTagId(tagId);
+            if (promptIds.isEmpty()) {
+                return new Page<>(page.getCurrent(), page.getSize(), 0);
+            }
+            wrapper.in(Prompt::getId, promptIds);
         }
         if (keyword != null && !keyword.isEmpty()) {
             wrapper.and(w -> w.like(Prompt::getTitle, keyword)
