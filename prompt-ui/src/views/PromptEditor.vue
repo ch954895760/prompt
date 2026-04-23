@@ -8,6 +8,7 @@ import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
 import { Save, Play, Copy, Trash2, X, History, RotateCcw } from 'lucide-vue-next'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
+import { aiTest } from '@/api/setting'
 
 const route = useRoute()
 const router = useRouter()
@@ -122,9 +123,16 @@ function handleCopy() {
   })
 }
 
-function handleTest() {
+async function handleTest() {
   showAiResult.value = true
-  aiResult.value = 'AI 测试功能需要配置 base_url 和 api_key。请在设置中配置后使用。'
+  aiResult.value = '正在测试...'
+  try {
+    const text = previewContent.value.replace(/<[^>]+>/g, '')
+    const result = await aiTest(text)
+    aiResult.value = result
+  } catch (e: any) {
+    aiResult.value = e.message || 'AI 测试失败'
+  }
 }
 
 function handleAddTag() {
