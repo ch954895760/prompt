@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
@@ -47,6 +47,15 @@ const showAiResult = ref(false)
 const aiLoading = ref(false)
 const loading = ref(false)
 const aiAbort = ref<(() => void) | null>(null)
+const aiContentRef = ref<HTMLDivElement | null>(null)
+
+function scrollAiToBottom() {
+  nextTick(() => {
+    if (aiContentRef.value) {
+      aiContentRef.value.scrollTop = aiContentRef.value.scrollHeight
+    }
+  })
+}
 
 const renderedAiResult = computed(() => {
   if (!aiResult.value) return ''
@@ -158,15 +167,18 @@ function handleTest() {
   aiAbort.value = aiTestStream(text, {
     onChunk: (chunk: string) => {
       aiResult.value += chunk
+      scrollAiToBottom()
     },
     onDone: () => {
       aiLoading.value = false
       aiAbort.value = null
+      scrollAiToBottom()
     },
     onError: (error: string) => {
       aiResult.value = error
       aiLoading.value = false
       aiAbort.value = null
+      scrollAiToBottom()
     },
   })
 }
@@ -427,35 +439,67 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Preview panel -->
-        <div>
-          <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">实时预览</label>
-          <div class="rounded-2xl p-6 min-h-[400px] relative transition-all"
-            style="background: var(--bg-secondary); border: 1px solid var(--border-color); font-family: 'Crimson Pro', Georgia, serif; line-height: 1.8;"
-          >
-            <div class="absolute top-4 right-4">
-              <button @click="handleCopy"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-surface-200 dark:hover:bg-surface-800"
-                style="color: var(--text-muted); border: 1px solid var(--border-color);"
-              >
-                <Copy class="w-3.5 h-3.5" />
-                复制
-              </button>
-            </div>
-            <div class="pt-8 text-base" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || '<span style=\'color: var(--text-muted); font-style: italic;\'>提示词预览将在这里显示...</span>'">
+        <!-- Preview + AI panel -->
+        <div class="flex flex-col gap-4 self-start" style="position: sticky; top: 24px;">
+          <!-- Preview -->
+          <div>
+            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">实时预览</label>
+            <div class="rounded-2xl p-6 min-h-[200px] relative transition-all"
+              style="background: var(--bg-secondary); border: 1px solid var(--border-color); font-family: 'Crimson Pro', Georgia, serif; line-height: 1.8;"
+            >
+              <div class="absolute top-4 right-4">
+                <button @click="handleCopy"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-surface-200 dark:hover:bg-surface-800"
+                  style="color: var(--text-muted); border: 1px solid var(--border-color);"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                  复制
+                </button>
+              </div>
+              <div class="pt-8 text-base" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || '<span style=\'color: var(--text-muted); font-style: italic;\'>提示词预览将在这里显示...</span>'">
+              </div>
             </div>
           </div>
 
           <!-- AI Test Result -->
-          <div v-if="showAiResult" class="mt-5">
-            <div class="flex items-center gap-2 mb-2">
-              <div class="w-2 h-2 rounded-full bg-[#f97316] animate-pulse"></div>
-              <label class="text-xs font-medium" style="color: var(--accent)">AI 响应</label>
-              <span v-if="aiLoading" class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--accent-soft); color: var(--accent);">生成中...</span>
+          <div v-if="showAiResult" class="rounded-2xl flex flex-col transition-all"
+            style="background: var(--bg-secondary); border: 1px solid var(--border-color); max-height: 420px;"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-3 shrink-0"
+              style="border-bottom: 1px solid var(--border-color);"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full flex items-center justify-center" style="background: var(--accent-soft);">
+                  <svg class="w-3.5 h-3.5" style="color: var(--accent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                  </svg>
+                </div>
+                <span class="text-xs font-medium" style="color: var(--text-primary)">AI 响应</span>
+                <span v-if="aiLoading" class="text-[10px] px-2 py-0.5 rounded-full animate-pulse" style="background: var(--accent-soft); color: var(--accent);">生成中...</span>
+              </div>
+              <button v-if="aiLoading" @click="handleStopTest"
+                class="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all"
+                style="background: rgba(220, 38, 38, 0.08); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.25);"
+                title="停止生成"
+              >
+                <Square class="w-3 h-3" />
+                停止
+              </button>
             </div>
-            <div class="rounded-2xl p-5 min-h-[120px] ai-message" style="background: var(--accent-soft); border: 1px solid var(--border-color);">
-              <div v-if="!aiResult && aiLoading" class="text-sm leading-relaxed" style="color: var(--text-muted);">正在等待 AI 响应...</div>
-              <div v-else class="text-sm leading-relaxed ai-markdown" style="color: var(--text-primary);" v-html="renderedAiResult"></div>
+
+            <!-- Content -->
+            <div ref="aiContentRef" class="p-5 overflow-y-auto"
+              style="min-height: 120px; max-height: 360px;"
+            >
+              <div v-if="!aiResult && aiLoading" class="flex items-center gap-2 text-sm" style="color: var(--text-muted);">
+                <div class="w-4 h-4 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
+                正在等待 AI 响应...
+              </div>
+              <div v-else-if="!aiResult && !aiLoading" class="text-sm" style="color: var(--text-muted);">点击"测试运行"查看 AI 响应</div>
+              <div v-else class="text-sm leading-relaxed ai-markdown ai-message-bubble" style="color: var(--text-primary);" v-html="renderedAiResult"></div>
             </div>
           </div>
         </div>
