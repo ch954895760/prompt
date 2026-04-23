@@ -1,5 +1,10 @@
 package com.prompt.controller;
 
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.ChatModel;
+import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.prompt.dto.AiTestRequest;
 import com.prompt.dto.UserSettingUpdateRequest;
 import com.prompt.entity.UserSetting;
@@ -9,15 +14,8 @@ import com.prompt.util.AesUtil;
 import com.prompt.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -27,7 +25,6 @@ public class UserSettingController {
 
     private final UserSettingService userSettingService;
     private final AesUtil aesUtil;
-    private final RestTemplate restTemplate;
 
     private Long getCurrentUserId(Authentication authentication) {
         return Long.valueOf(authentication.getName());
@@ -62,50 +59,39 @@ public class UserSettingController {
             log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
             throw new BusinessException("API Key 解密失败，请重新配置");
         }
+        System.out.println("apiKey = " + apiKey);
 
         String baseUrl = setting.getApiBaseUrl();
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
-        String url = baseUrl + "/v1/chat/completions";
 
         String model = setting.getModel();
         if (model == null || model.isEmpty()) {
             model = "gpt-4.1-mini";
         }
 
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "messages", List.of(Map.of("role", "user", "content", request.getContent()))
-        );
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null) {
-                throw new BusinessException("AI 返回空响应");
-            }
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
-            if (choices == null || choices.isEmpty()) {
-                throw new BusinessException("AI 返回无效响应");
-            }
-            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-            String content = (String) message.get("content");
+            OpenAIClient client = OpenAIOkHttpClient.builder()
+                    .baseUrl(baseUrl)
+                    .apiKey(apiKey)
+                    .build();
+
+            ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+                    .addUserMessage(request.getContent())
+                    .model(ChatModel.of(model))
+                    .build();
+
+            ChatCompletion chatCompletion = client.chat().completions().create(params);
+            String content = chatCompletion.choices().get(0).message().content().orElseThrow(
+                    () -> new BusinessException("AI 返回空内容")
+            );
             return Result.success(content);
         } catch (BusinessException e) {
             throw e;
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.error("[DEBUG] AI test request failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new BusinessException("AI 请求失败，请检查 API Key、模型名称和 Base URL 是否正确");
         } catch (Exception e) {
             log.error("[DEBUG] AI test request failed: {}", e.getMessage());
-            throw new BusinessException("AI 请求失败: " + e.getMessage());
+            throw new BusinessException("AI 请求失败，请检查 API Key、模型名称和 Base URL 是否正确");
         }
     }
 }
