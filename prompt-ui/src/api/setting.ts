@@ -12,3 +12,85 @@ export function updateSettings(data: Partial<UserSetting>): Promise<UserSetting>
 export function aiTest(content: string): Promise<string> {
   return request.post('/settings/ai-test', { content })
 }
+
+export interface AiTestStreamCallbacks {
+  onChunk: (text: string) => void
+  onDone: () => void
+  onError: (error: string) => void
+}
+
+export function aiTestStream(content: string, callbacks: AiTestStreamCallbacks): () => void {
+  const token = localStorage.getItem('token') || ''
+
+  const controller = new AbortController()
+
+  fetch('/api/settings/ai-test', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+    signal: controller.signal,
+  }).then(async (response) => {
+    if (!response.ok) {
+      const text = await response.text()
+      let message = 'AI 请求失败'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch {
+        message = text || message
+      }
+      throw new Error(message)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('无法读取响应流')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+
+        const data = trimmed.slice(5).trim()
+        if (data) {
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed === '[DONE]' || (typeof parsed === 'object' && parsed === null)) {
+              callbacks.onDone()
+              return
+            }
+            if (typeof parsed === 'object' && parsed !== null) {
+              callbacks.onChunk(parsed.content || '')
+            } else {
+              callbacks.onChunk(String(parsed))
+            }
+          } catch {
+            callbacks.onChunk(data)
+          }
+        }
+      }
+    }
+
+    callbacks.onDone()
+  }).catch((err) => {
+    if (err.name !== 'AbortError') {
+      callbacks.onError(err.message || 'AI 请求失败')
+    }
+  })
+
+  return () => controller.abort()
+}

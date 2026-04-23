@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
-import { Save, Play, Copy, Trash2, X, History, RotateCcw } from 'lucide-vue-next'
+import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
-import { aiTest } from '@/api/setting'
+import { aiTestStream } from '@/api/setting'
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css'
+
+marked.use({
+  renderer: {
+    code({ text, lang }) {
+      const language = hljs.getLanguage(lang || '') ? lang : 'plaintext'
+      const highlighted = hljs.highlight(text, { language: language || 'plaintext' }).value
+      return `<pre style="margin: 0.75em 0; border-radius: 8px; overflow-x: auto; background: #1c1917;"><code class="hljs language-${language}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
+    },
+    codespan({ text }) {
+      return `<code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent);">${text}</code>`
+    }
+  }
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -28,7 +44,14 @@ const tags = ref<Tag[]>([])
 const variableValues = ref<Record<string, string>>({})
 const aiResult = ref('')
 const showAiResult = ref(false)
+const aiLoading = ref(false)
 const loading = ref(false)
+const aiAbort = ref<(() => void) | null>(null)
+
+const renderedAiResult = computed(() => {
+  if (!aiResult.value) return ''
+  return marked(aiResult.value) as string
+})
 
 const extractedVars = computed(() => {
   const vars = [...content.value.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1])
@@ -123,18 +146,37 @@ function handleCopy() {
   })
 }
 
-async function handleTest() {
+function handleTest() {
   showAiResult.value = true
-  aiResult.value = '正在测试...'
-  try {
-    const text = content.value.replace(/\{\{(\w+)\}\}/g, (match: string, varName: string) => {
-      return variableValues.value[varName] || match
-    })
-    const result = await aiTest(text)
-    aiResult.value = result
-  } catch (e: any) {
-    aiResult.value = e.message || 'AI 测试失败'
+  aiResult.value = ''
+  aiLoading.value = true
+
+  const text = content.value.replace(/\{\{(\w+)\}\}/g, (match: string, varName: string) => {
+    return variableValues.value[varName] || match
+  })
+
+  aiAbort.value = aiTestStream(text, {
+    onChunk: (chunk: string) => {
+      aiResult.value += chunk
+    },
+    onDone: () => {
+      aiLoading.value = false
+      aiAbort.value = null
+    },
+    onError: (error: string) => {
+      aiResult.value = error
+      aiLoading.value = false
+      aiAbort.value = null
+    },
+  })
+}
+
+function handleStopTest() {
+  if (aiAbort.value) {
+    aiAbort.value()
+    aiAbort.value = null
   }
+  aiLoading.value = false
 }
 
 function handleAddTag() {
@@ -333,12 +375,19 @@ onMounted(() => {
           </div>
 
           <div class="flex items-center gap-3 pt-2">
-            <button @click="handleTest"
+            <button v-if="!aiLoading" @click="handleTest"
               class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
               style="border-color: var(--accent); color: var(--accent);"
             >
               <Play class="w-4 h-4" />
               测试运行
+            </button>
+            <button v-else @click="handleStopTest"
+              class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
+              style="border-color: #dc2626; color: #dc2626;"
+            >
+              <Square class="w-4 h-4" />
+              停止生成
             </button>
             <button @click="clearEditor"
               class="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
@@ -402,9 +451,11 @@ onMounted(() => {
             <div class="flex items-center gap-2 mb-2">
               <div class="w-2 h-2 rounded-full bg-[#f97316] animate-pulse"></div>
               <label class="text-xs font-medium" style="color: var(--accent)">AI 响应</label>
+              <span v-if="aiLoading" class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--accent-soft); color: var(--accent);">生成中...</span>
             </div>
-            <div class="rounded-2xl p-5 min-h-[120px]" style="background: var(--accent-soft);">
-              <div class="text-sm leading-relaxed" style="color: var(--text-primary);">{{ aiResult }}</div>
+            <div class="rounded-2xl p-5 min-h-[120px] ai-message" style="background: var(--accent-soft); border: 1px solid var(--border-color);">
+              <div v-if="!aiResult && aiLoading" class="text-sm leading-relaxed" style="color: var(--text-muted);">正在等待 AI 响应...</div>
+              <div v-else class="text-sm leading-relaxed ai-markdown" style="color: var(--text-primary);" v-html="renderedAiResult"></div>
             </div>
           </div>
         </div>
@@ -428,5 +479,91 @@ onMounted(() => {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<style>
+.ai-markdown h1 {
+  font-size: 1.35em;
+  font-weight: 700;
+  margin: 0.75em 0 0.4em;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+.ai-markdown h2 {
+  font-size: 1.15em;
+  font-weight: 600;
+  margin: 0.75em 0 0.4em;
+  line-height: 1.35;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+.ai-markdown h3 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 0.6em 0 0.3em;
+  color: var(--text-primary);
+}
+.ai-markdown h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.5em 0 0.25em;
+  color: var(--text-primary);
+}
+.ai-markdown p {
+  margin: 0.5em 0;
+  line-height: 1.75;
+}
+.ai-markdown ul, .ai-markdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.ai-markdown li {
+  margin: 0.25em 0;
+  line-height: 1.7;
+}
+.ai-markdown blockquote {
+  margin: 0.75em 0;
+  padding: 0.5em 0.75em;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-primary);
+  border-radius: 0 6px 6px 0;
+  color: var(--text-secondary);
+}
+.ai-markdown blockquote p {
+  margin: 0.25em 0;
+}
+.ai-markdown a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.ai-markdown a:hover {
+  text-decoration: underline;
+}
+.ai-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.9em;
+}
+.ai-markdown th, .ai-markdown td {
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  text-align: left;
+}
+.ai-markdown th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+}
+.ai-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 1em 0;
+}
+.ai-markdown img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 0.5em 0;
 }
 </style>

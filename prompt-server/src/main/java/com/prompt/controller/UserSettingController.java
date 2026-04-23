@@ -2,8 +2,9 @@ package com.prompt.controller;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.http.StreamResponse;
 import com.openai.models.ChatModel;
-import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.prompt.dto.AiTestRequest;
 import com.prompt.dto.UserSettingUpdateRequest;
@@ -14,8 +15,13 @@ import com.prompt.util.AesUtil;
 import com.prompt.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -40,8 +46,8 @@ public class UserSettingController {
         return Result.success(userSettingService.update(getCurrentUserId(authentication), request));
     }
 
-    @PostMapping("/ai-test")
-    public Result<String> aiTest(@RequestBody AiTestRequest request, Authentication authentication) {
+    @PostMapping(value = "/ai-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter aiTest(@RequestBody AiTestRequest request, Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
         UserSetting setting = userSettingService.getByUserId(userId);
 
@@ -59,7 +65,6 @@ public class UserSettingController {
             log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
             throw new BusinessException("API Key 解密失败，请重新配置");
         }
-        System.out.println("apiKey = " + apiKey);
 
         String baseUrl = setting.getApiBaseUrl();
         if (baseUrl.endsWith("/")) {
@@ -71,27 +76,41 @@ public class UserSettingController {
             model = "gpt-4.1-mini";
         }
 
-        try {
-            OpenAIClient client = OpenAIOkHttpClient.builder()
-                    .baseUrl(baseUrl)
-                    .apiKey(apiKey)
-                    .build();
+        OpenAIClient client = OpenAIOkHttpClient.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .build();
 
-            ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
-                    .addUserMessage(request.getContent())
-                    .model(ChatModel.of(model))
-                    .build();
+        ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+                .addUserMessage(request.getContent())
+                .model(ChatModel.of(model))
+                .build();
 
-            ChatCompletion chatCompletion = client.chat().completions().create(params);
-            String content = chatCompletion.choices().get(0).message().content().orElseThrow(
-                    () -> new BusinessException("AI 返回空内容")
-            );
-            return Result.success(content);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("[DEBUG] AI test request failed: {}", e.getMessage());
-            throw new BusinessException("AI 请求失败，请检查 API Key、模型名称和 Base URL 是否正确");
-        }
+        SseEmitter emitter = new SseEmitter(300_000L);
+
+        new Thread(() -> {
+            try (StreamResponse<ChatCompletionChunk> streamResponse = client.chat().completions().createStreaming(params)) {
+                streamResponse.stream().forEach(chunk -> {
+                    chunk.choices().forEach(choice -> {
+                        choice.delta().content().ifPresent(text -> {
+                            try {
+                                Map<String, String> payload = new HashMap<>();
+                                payload.put("content", text);
+                                emitter.send(SseEmitter.event().name("message").data(payload));
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    });
+                });
+                emitter.send(SseEmitter.event().name("done").data("[DONE]"));
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("[DEBUG] AI test stream failed: {}", e.getMessage());
+                emitter.completeWithError(e);
+            }
+        }).start();
+
+        return emitter;
     }
 }
