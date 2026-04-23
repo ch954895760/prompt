@@ -29,5 +29,8 @@ public class Prompt {
     private String categoryName;
 
     @TableField(exist = false)
+    private String categoryColor;
+
+    @TableField(exist = false)
     private List<Tag> tags;
 }

@@ -4,6 +4,7 @@ import MainLayout from '@/components/MainLayout.vue'
 import { getTags, createTag, updateTag, deleteTag } from '@/api/tag'
 import type { Tag } from '@/types'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const tags = ref<Tag[]>([])
 const loading = ref(false)
@@ -60,14 +61,24 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(id: number, name: string) {
-  if (!confirm(`确定要删除 "${name}" 吗？`)) return
+const deleteDialogVisible = ref(false)
+const deleteTarget = ref<{ id: number; name: string } | null>(null)
+
+function handleDelete(id: number, name: string) {
+  deleteTarget.value = { id, name }
+  deleteDialogVisible.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
   try {
-    await deleteTag(id)
-    showToast(`"${name}" 已删除`)
+    await deleteTag(deleteTarget.value.id)
+    showToast(`"${deleteTarget.value.name}" 已删除`)
     await loadData()
   } catch (e: any) {
     showToast(e.message || '删除失败')
+  } finally {
+    deleteTarget.value = null
   }
 }
 
@@ -194,6 +205,13 @@ onMounted(loadData)
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="deleteDialogVisible"
+      :item-name="deleteTarget?.name"
+      @confirm="confirmDelete"
+    />
 
     <!-- Toast -->
     <div v-if="toastVisible"

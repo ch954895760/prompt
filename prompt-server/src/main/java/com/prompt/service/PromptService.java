@@ -67,9 +67,12 @@ public class PromptService {
             List<Category> categories = categoryMapper.selectBatchIds(categoryIds);
             Map<Long, String> categoryNameMap = categories.stream()
                     .collect(Collectors.toMap(Category::getId, Category::getName));
+            Map<Long, String> categoryColorMap = categories.stream()
+                    .collect(Collectors.toMap(Category::getId, Category::getColor));
             for (Prompt prompt : result.getRecords()) {
                 if (prompt.getCategoryId() != null) {
                     prompt.setCategoryName(categoryNameMap.get(prompt.getCategoryId()));
+                    prompt.setCategoryColor(categoryColorMap.get(prompt.getCategoryId()));
                 }
             }
         }

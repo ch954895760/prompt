@@ -5,6 +5,7 @@ import CategoryNode from '@/components/CategoryNode.vue'
 import { getCategoryTree, createCategory, updateCategory, deleteCategory } from '@/api/category'
 import type { Category } from '@/types'
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const categories = ref<Category[]>([])
 const loading = ref(false)
@@ -72,14 +73,24 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(id: number, name: string) {
-  if (!confirm(`确定要删除 "${name}" 吗？`)) return
+const deleteDialogVisible = ref(false)
+const deleteTarget = ref<{ id: number; name: string } | null>(null)
+
+function handleDelete(id: number, name: string) {
+  deleteTarget.value = { id, name }
+  deleteDialogVisible.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
   try {
-    await deleteCategory(id)
-    showToast(`"${name}" 已删除`)
+    await deleteCategory(deleteTarget.value.id)
+    showToast(`"${deleteTarget.value.name}" 已删除`)
     await loadData()
   } catch (e: any) {
     showToast(e.message || '删除失败')
+  } finally {
+    deleteTarget.value = null
   }
 }
 
@@ -227,6 +238,13 @@ onMounted(loadData)
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="deleteDialogVisible"
+      :item-name="deleteTarget?.name"
+      @confirm="confirmDelete"
+    />
 
     <!-- Toast -->
     <div v-if="toastVisible"

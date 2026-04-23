@@ -7,6 +7,7 @@ import { getCategoryList } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
 import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { marked } from 'marked'
@@ -239,15 +240,25 @@ async function loadHistory() {
   }
 }
 
-async function handleRollback(version: number) {
-  if (!confirm(`确定要回滚到版本 ${version} 吗？`)) return
+const rollbackDialogVisible = ref(false)
+const rollbackVersion = ref<number | null>(null)
+
+function handleRollback(version: number) {
+  rollbackVersion.value = version
+  rollbackDialogVisible.value = true
+}
+
+async function confirmRollback() {
+  if (!rollbackVersion.value) return
   try {
-    await rollbackPrompt(promptId.value, version)
+    await rollbackPrompt(promptId.value, rollbackVersion.value)
     showToast('已回滚到指定版本')
     await loadPrompt()
     await loadHistory()
   } catch (e: any) {
     showToast(e.message || '回滚失败')
+  } finally {
+    rollbackVersion.value = null
   }
 }
 
@@ -505,6 +516,15 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Rollback Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="rollbackDialogVisible"
+      title="确认回滚"
+      :description="`确定要回滚到版本 ${rollbackVersion} 吗？当前内容将被替换，此操作不可恢复。`"
+      confirm-text="回滚"
+      @confirm="confirmRollback"
+    />
 
     <!-- Toast -->
     <div v-if="toastVisible"

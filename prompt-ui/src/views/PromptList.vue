@@ -7,6 +7,7 @@ import { getCategoryList } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
 import { Plus, LayoutGrid, List, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,14 +48,21 @@ function goToEditor(id?: number) {
   router.push(id ? `/editor/${id}` : '/editor')
 }
 
-async function handleDelete(id: number, title: string) {
-  if (!confirm(`确定要删除 "${title}" 吗？`)) return
+function handleDelete(id: number, title: string) {
+  deleteTarget.value = { id, title }
+  deleteDialogVisible.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
   try {
-    await deletePrompt(id)
+    await deletePrompt(deleteTarget.value.id)
     await loadData()
-    showToast(`"${title}" 已删除`)
+    showToast(`"${deleteTarget.value.title}" 已删除`)
   } catch (e) {
     showToast('删除失败')
+  } finally {
+    deleteTarget.value = null
   }
 }
 
@@ -80,6 +88,9 @@ watch(() => route.query.q, (q) => {
   searchKeyword.value = q as string || ''
   loadData()
 })
+
+const deleteDialogVisible = ref(false)
+const deleteTarget = ref<{ id: number; title: string } | null>(null)
 
 const toastVisible = ref(false)
 const toastMessage = ref('')
@@ -191,7 +202,7 @@ onMounted(loadData)
         >
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
-              <div class="w-2.5 h-2.5 rounded-full" :style="{ background: p.categoryName ? '#ea580c' : '#d6d3d1' }"></div>
+              <div class="w-2.5 h-2.5 rounded-full" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
               <span class="text-[10px] font-medium uppercase tracking-wider" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }}</span>
             </div>
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -231,6 +242,51 @@ onMounted(loadData)
         </div>
       </div>
 
+      <!-- List view -->
+      <div v-else class="flex flex-col gap-3">
+        <div v-for="p in prompts" :key="p.id"
+          class="rounded-xl p-4 flex items-center gap-4 group transition-all"
+          style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
+          @mouseenter="($event.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'"
+          @mouseleave="($event.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'"
+        >
+          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-sm mb-0.5 truncate" style="color: var(--text-primary)">{{ p.title }}</h3>
+            <p class="text-xs truncate" style="color: var(--text-secondary)">{{ p.content.substring(0, 60) }}...</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[10px] px-2 py-0.5 rounded-md font-medium" style="background: var(--bg-tertiary); color: var(--text-muted)">
+              {{ p.categoryName || '未分类' }}
+            </span>
+            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click="copyPrompt(p.content, p.title)"
+                class="p-1.5 rounded-lg transition-colors"
+                style="color: var(--text-muted);"
+                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+              >
+                <Copy class="w-3.5 h-3.5" />
+              </button>
+              <button @click="goToEditor(p.id)"
+                class="p-1.5 rounded-lg transition-colors"
+                style="color: var(--text-muted);"
+                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+              >
+                <Pencil class="w-3.5 h-3.5" />
+              </button>
+              <button @click="handleDelete(p.id, p.title)"
+                class="p-1.5 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
+                style="color: var(--text-muted);"
+              >
+                <Trash2 class="w-3.5 h-3.5 hover:text-red-500" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Pagination -->
       <div v-if="total > pageSize" class="flex justify-center mt-8 gap-2">
         <button v-for="page in Math.ceil(total / pageSize)" :key="page"
@@ -243,6 +299,13 @@ onMounted(loadData)
         </button>
       </div>
     </div>
+
+    <!-- Delete Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="deleteDialogVisible"
+      :item-name="deleteTarget?.title"
+      @confirm="confirmDelete"
+    />
 
     <!-- Toast -->
     <div v-if="toastVisible"
