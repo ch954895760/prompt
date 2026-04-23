@@ -35,7 +35,7 @@ public class PromptService {
     private final PromptTagMapper promptTagMapper;
     private final TagMapper tagMapper;
     private final CategoryMapper categoryMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public Page<Prompt> page(Long userId, Long categoryId, Long tagId, String keyword, Page<Prompt> page) {
         LambdaQueryWrapper<Prompt> wrapper = new LambdaQueryWrapper<>();

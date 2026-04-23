@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MainLayout from '@/components/MainLayout.vue'
-import { getPromptList } from '@/api/prompt'
+import { getPromptList, usePrompt } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
 import type { Prompt, Category } from '@/types'
 import { FileText, FolderOpen, Zap, Copy, ChevronRight } from 'lucide-vue-next'
@@ -39,10 +39,10 @@ async function loadData() {
   }
 }
 
-function copyPrompt(content: string, title: string) {
-  navigator.clipboard.writeText(content).then(() => {
-    showToast(`"${title}" 已复制`)
-  })
+async function copyPrompt(content: string, title: string, id: number) {
+  await navigator.clipboard.writeText(content)
+  await usePrompt(id)
+  showToast(`"${title}" 已复制`)
 }
 
 const toastVisible = ref(false)
@@ -122,7 +122,7 @@ onMounted(loadData)
             <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+28%</span>
           </div>
           <div class="text-2xl font-bold mb-0.5" style="color: var(--text-primary)">{{ stats.weeklyUsage }}</div>
-          <div class="text-xs" style="color: var(--text-muted)">本周使用次数</div>
+          <div class="text-xs" style="color: var(--text-muted)">累计使用次数</div>
         </div>
       </div>
 
@@ -147,7 +147,7 @@ onMounted(loadData)
               <div class="text-sm font-medium truncate transition-colors group-hover:text-[#ea580c] dark:group-hover:text-[#fb923c]" style="color: var(--text-primary)">{{ p.title }}</div>
               <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · {{ p.updatedAt }}</div>
             </div>
-            <button @click.stop="copyPrompt(p.content, p.title)"
+            <button @click.stop="copyPrompt(p.content, p.title, p.id)"
               class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"
               style="color: var(--text-muted);"
               @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"

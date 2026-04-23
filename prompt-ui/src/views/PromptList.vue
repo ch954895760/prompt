@@ -2,7 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
-import { getPrompts, deletePrompt, getPromptList } from '@/api/prompt'
+import { getPrompts, deletePrompt, getPromptList, usePrompt } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
@@ -66,10 +66,10 @@ async function confirmDelete() {
   }
 }
 
-function copyPrompt(content: string, title: string) {
-  navigator.clipboard.writeText(content).then(() => {
-    showToast(`"${title}" 已复制`)
-  })
+async function copyPrompt(content: string, title: string, id: number) {
+  await navigator.clipboard.writeText(content)
+  await usePrompt(id)
+  showToast(`"${title}" 已复制`)
 }
 
 function handleCategoryChange(catId: number | null) {
@@ -231,7 +231,7 @@ onMounted(loadData)
                 style="background: var(--bg-tertiary); color: var(--text-muted);"
               >#{{ tag.name }}</span>
             </div>
-            <button @click="copyPrompt(p.content, p.title)"
+            <button @click="copyPrompt(p.content, p.title, p.id)"
               class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-[#fff7ed] dark:hover:bg-[#451a03]"
               style="color: var(--accent);"
             >
@@ -260,7 +260,7 @@ onMounted(loadData)
               {{ p.categoryName || '未分类' }}
             </span>
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button @click="copyPrompt(p.content, p.title)"
+              <button @click="copyPrompt(p.content, p.title, p.id)"
                 class="p-1.5 rounded-lg transition-colors"
                 style="color: var(--text-muted);"
                 @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
