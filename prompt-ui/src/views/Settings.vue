@@ -27,7 +27,9 @@ async function loadData() {
   try {
     const s = await getSettings()
     setting.value = s
-    form.value.theme = s.theme || 'light'
+    const localTheme = localStorage.getItem('theme')
+    form.value.theme = localTheme || s.theme || 'light'
+    document.documentElement.classList.toggle('dark', form.value.theme === 'dark')
     form.value.defaultModel = s.defaultModel || ''
     form.value.apiBaseUrl = s.apiBaseUrl || ''
     form.value.model = s.model || ''
