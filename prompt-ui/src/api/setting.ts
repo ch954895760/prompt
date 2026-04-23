@@ -66,21 +66,26 @@ export function aiTestStream(content: string, callbacks: AiTestStreamCallbacks):
         if (!trimmed.startsWith('data:')) continue
 
         const data = trimmed.slice(5).trim()
-        if (data) {
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed === '[DONE]' || (typeof parsed === 'object' && parsed === null)) {
-              callbacks.onDone()
+        if (!data) continue
+
+        if (data === '[DONE]') {
+          callbacks.onDone()
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(data)
+          if (typeof parsed === 'object' && parsed !== null) {
+            if (parsed.error) {
+              callbacks.onError(parsed.error)
               return
             }
-            if (typeof parsed === 'object' && parsed !== null) {
-              callbacks.onChunk(parsed.content || '')
-            } else {
-              callbacks.onChunk(String(parsed))
-            }
-          } catch {
-            callbacks.onChunk(data)
+            callbacks.onChunk(parsed.content || '')
+          } else {
+            callbacks.onChunk(String(parsed))
           }
+        } catch {
+          callbacks.onChunk(data)
         }
       }
     }

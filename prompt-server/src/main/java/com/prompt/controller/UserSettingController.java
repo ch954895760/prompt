@@ -16,6 +16,7 @@ import com.prompt.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.concurrent.DelegatingSecurityContextRunnable;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -88,7 +89,7 @@ public class UserSettingController {
 
         SseEmitter emitter = new SseEmitter(300_000L);
 
-        new Thread(() -> {
+        Runnable task = () -> {
             try (StreamResponse<ChatCompletionChunk> streamResponse = client.chat().completions().createStreaming(params)) {
                 streamResponse.stream().forEach(chunk -> {
                     chunk.choices().forEach(choice -> {
@@ -98,7 +99,7 @@ public class UserSettingController {
                                 payload.put("content", text);
                                 emitter.send(SseEmitter.event().name("message").data(payload));
                             } catch (Exception e) {
-                                throw new RuntimeException(e);
+                                log.error("[DEBUG] SSE send failed: {}", e.getMessage());
                             }
                         });
                     });
@@ -107,9 +108,19 @@ public class UserSettingController {
                 emitter.complete();
             } catch (Exception e) {
                 log.error("[DEBUG] AI test stream failed: {}", e.getMessage());
-                emitter.completeWithError(e);
+                try {
+                    Map<String, String> errorPayload = new HashMap<>();
+                    errorPayload.put("error", e.getMessage());
+                    emitter.send(SseEmitter.event().name("error").data(errorPayload));
+                    emitter.complete();
+                } catch (Exception ex) {
+                    log.error("[DEBUG] Failed to send error event: {}", ex.getMessage());
+                    emitter.completeWithError(ex);
+                }
             }
-        }).start();
+        };
+
+        new Thread(new DelegatingSecurityContextRunnable(task)).start();
 
         return emitter;
     }
