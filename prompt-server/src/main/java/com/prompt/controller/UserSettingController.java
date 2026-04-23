@@ -10,9 +10,10 @@ import com.prompt.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -26,14 +27,7 @@ public class UserSettingController {
 
     private final UserSettingService userSettingService;
     private final AesUtil aesUtil;
-    private final RestTemplate restTemplate = createRestTemplate();
-
-    private static RestTemplate createRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(25000);
-        factory.setReadTimeout(25000);
-        return new RestTemplate(factory);
-    }
+    private final RestTemplate restTemplate;
 
     private Long getCurrentUserId(Authentication authentication) {
         return Long.valueOf(authentication.getName());
@@ -77,7 +71,7 @@ public class UserSettingController {
 
         String model = setting.getModel();
         if (model == null || model.isEmpty()) {
-            model = "gpt-3.5-turbo";
+            model = "gpt-4.1-mini";
         }
 
         Map<String, Object> body = Map.of(
@@ -106,6 +100,9 @@ public class UserSettingController {
             return Result.success(content);
         } catch (BusinessException e) {
             throw e;
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.error("[DEBUG] AI test request failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BusinessException("AI 请求失败，请检查 API Key、模型名称和 Base URL 是否正确");
         } catch (Exception e) {
             log.error("[DEBUG] AI test request failed: {}", e.getMessage());
             throw new BusinessException("AI 请求失败: " + e.getMessage());

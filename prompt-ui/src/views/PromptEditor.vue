@@ -127,7 +127,9 @@ async function handleTest() {
   showAiResult.value = true
   aiResult.value = '正在测试...'
   try {
-    const text = previewContent.value.replace(/<[^>]+>/g, '')
+    const text = content.value.replace(/\{\{(\w+)\}\}/g, (match: string, varName: string) => {
+      return variableValues.value[varName] || match
+    })
     const result = await aiTest(text)
     aiResult.value = result
   } catch (e: any) {
