@@ -7,6 +7,7 @@ import {
   FolderTree, Tag, Settings, Menu, X, LogOut,
   Search, Sun, Moon, Bell
 } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,7 +43,13 @@ function navigate(path: string) {
   }
 }
 
+const logoutDialogVisible = ref(false)
+
 function handleLogout() {
+  logoutDialogVisible.value = true
+}
+
+function confirmLogout() {
   userStore.logout()
   router.push('/login')
 }
@@ -185,6 +192,14 @@ watch(() => route.query.q, (q) => {
         <slot />
       </div>
     </main>
+    <!-- Logout Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="logoutDialogVisible"
+      title="确认退出"
+      description="确定要退出登录吗？"
+      confirm-text="退出登录"
+      @confirm="confirmLogout"
+    />
   </div>
 </template>
 
