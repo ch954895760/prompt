@@ -8,6 +8,7 @@ import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
 import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+import VariableInput from '@/components/VariableInput.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
@@ -72,11 +73,78 @@ const extractedVars = computed(() => {
   return [...new Set(vars.filter((v): v is string => !!v))]
 })
 
+// 检测变量对应的语言
+function getVariableLanguage(varName: string): string {
+  const lower = varName.toLowerCase()
+  const langMap: Record<string, string> = {
+    'javascript': 'javascript',
+    'js': 'javascript',
+    'typescript': 'typescript',
+    'ts': 'typescript',
+    'python': 'python',
+    'py': 'python',
+    'java': 'java',
+    'html': 'xml',
+    'css': 'css',
+    'scss': 'scss',
+    'sass': 'scss',
+    'less': 'less',
+    'json': 'json',
+    'sql': 'sql',
+    'bash': 'bash',
+    'shell': 'bash',
+    'sh': 'bash',
+    'go': 'go',
+    'rust': 'rust',
+    'rs': 'rust',
+    'c': 'c',
+    'cpp': 'cpp',
+    'c++': 'cpp',
+    'csharp': 'csharp',
+    'cs': 'csharp',
+    'php': 'php',
+    'ruby': 'ruby',
+    'rb': 'ruby',
+    'swift': 'swift',
+    'kotlin': 'kotlin',
+    'kt': 'kotlin',
+    'vue': 'xml',
+    'react': 'javascript',
+    'jsx': 'javascript',
+    'tsx': 'typescript',
+  }
+
+  for (const [key, lang] of Object.entries(langMap)) {
+    if (lower.includes(key)) return lang
+  }
+  return ''
+}
+
 const previewContent = computed(() => {
   let preview = content.value
   for (const [key, value] of Object.entries(variableValues.value)) {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
-    preview = preview.replace(regex, value || `{{${key}}}`)
+
+    let formattedValue: string
+    if (!value) {
+      formattedValue = `{{${key}}}`
+    } else if (key.toLowerCase().includes('code') || getVariableLanguage(key)) {
+      // 代码变量：使用代码块高亮
+      const lang = getVariableLanguage(key) || 'plaintext'
+      try {
+        const highlighted = hljs.highlight(value, { language: lang }).value
+        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: #1c1917;"><code class="hljs language-${lang}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
+      } catch (e) {
+        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: #1c1917; padding: 12px;"><code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; color: #e7e7e7;">${value.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`
+      }
+    } else if (value.includes('\n')) {
+      // 多行文本：将换行符转换为 <br> 标签
+      formattedValue = value.replace(/\n/g, '<br>')
+    } else {
+      // 单行文本
+      formattedValue = value
+    }
+    preview = preview.replace(regex, formattedValue)
   }
   // Highlight remaining vars
   preview = preview.replace(/\{\{(\w+)\}\}/g, '<span style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{$1}}</span>')
@@ -396,16 +464,14 @@ onMounted(() => {
           <!-- Variable inputs -->
           <div v-if="extractedVars.length > 0">
             <label class="block text-xs font-medium mb-3" style="color: var(--text-secondary)">填写变量值</label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 gap-3">
               <div v-for="v in extractedVars" :key="v">
                 <label class="block text-[10px] font-medium uppercase tracking-wider mb-1.5" style="color: var(--text-muted)">{{ v }}</label>
-                <input v-model="variableValues[v]" type="text"
-                  class="w-full px-3 py-2 rounded-lg text-sm transition-all"
-                  style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                <VariableInput
+                  :name="v"
+                  v-model="variableValues[v]"
                   :placeholder="`输入 ${v}...`"
-                  @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
-                  @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
-                >
+                />
               </div>
             </div>
           </div>
