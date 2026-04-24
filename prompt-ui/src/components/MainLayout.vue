@@ -15,22 +15,15 @@ const userStore = useUserStore()
 
 const sidebarOpen = ref(false)
 const searchQuery = ref('')
-const isDark = ref(false)
-
-function checkTheme() {
-  if (localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
-checkTheme()
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  userStore.toggleTheme()
 }
+
+function checkTheme() {
+  document.documentElement.classList.toggle('dark', userStore.theme === 'dark')
+}
+checkTheme()
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
@@ -175,7 +168,7 @@ watch(() => route.query.q, (q) => {
             class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
             style="color: var(--text-secondary)"
           >
-            <Sun v-if="isDark" class="w-4 h-4" />
+            <Sun v-if="userStore.theme === 'dark'" class="w-4 h-4" />
             <Moon v-else class="w-4 h-4" />
           </button>
           <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800 relative"

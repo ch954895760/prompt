@@ -12,22 +12,15 @@ const error = ref('')
 
 const loginForm = ref({ email: '', password: '', remember: false })
 const registerForm = ref({ username: '', email: '', password: '' })
-const isDark = ref(false)
-
-function checkTheme() {
-  if (localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
-checkTheme()
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  userStore.toggleTheme()
 }
+
+function checkTheme() {
+  document.documentElement.classList.toggle('dark', userStore.theme === 'dark')
+}
+checkTheme()
 
 async function handleLogin() {
   loading.value = true
@@ -67,7 +60,7 @@ async function handleRegister() {
 
     <!-- Theme toggle -->
     <button @click="toggleTheme" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800 z-20">
-      <Sun v-if="isDark" class="w-5 h-5" style="color: var(--text-secondary)" />
+      <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
       <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
     </button>
 

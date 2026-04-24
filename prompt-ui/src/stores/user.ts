@@ -7,8 +7,26 @@ export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
   const user = ref<User | null>(getStoredUser())
+  const theme = ref<'light' | 'dark'>(getStoredTheme())
 
   const isLoggedIn = computed(() => !!token.value)
+
+  function getStoredTheme(): 'light' | 'dark' {
+    const local = localStorage.getItem('theme') as 'light' | 'dark' | null
+    if (local) return local
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+
+  function toggleTheme() {
+    const newTheme = theme.value === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+  }
+
+  function setTheme(newTheme: 'light' | 'dark') {
+    theme.value = newTheme
+    localStorage.setItem('theme', newTheme)
+    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  }
 
   function getStoredUser(): User | null {
     const raw = localStorage.getItem('user')
@@ -64,5 +82,5 @@ export const useUserStore = defineStore('user', () => {
     storeUser(u)
   }
 
-  return { token, refreshToken, user, isLoggedIn, login, register, logout, setUser }
+  return { token, refreshToken, user, theme, isLoggedIn, login, register, logout, setUser, toggleTheme, setTheme }
 })

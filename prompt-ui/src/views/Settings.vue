@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { getSettings, updateSettings } from '@/api/setting'
 import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
@@ -16,7 +16,7 @@ const importFile = ref<HTMLInputElement | null>(null)
 const form = ref({
   username: '',
   email: '',
-  theme: 'light',
+  theme: userStore.theme,
   defaultModel: '',
   apiBaseUrl: '',
   apiKey: '',
@@ -27,9 +27,11 @@ async function loadData() {
   try {
     const s = await getSettings()
     setting.value = s
-    const localTheme = localStorage.getItem('theme')
-    form.value.theme = localTheme || s.theme || 'light'
-    document.documentElement.classList.toggle('dark', form.value.theme === 'dark')
+    // 如果服务器有设置主题，且本地没有手动设置过，则同步服务器主题
+    if (s.theme && !localStorage.getItem('theme')) {
+      userStore.setTheme(s.theme)
+    }
+    form.value.theme = userStore.theme
     form.value.defaultModel = s.defaultModel || ''
     form.value.apiBaseUrl = s.apiBaseUrl || ''
     form.value.model = s.model || ''
@@ -42,11 +44,13 @@ async function loadData() {
   }
 }
 
-function toggleTheme() {
-  const newTheme = form.value.theme === 'dark' ? 'light' : 'dark'
+watch(() => userStore.theme, (newTheme) => {
   form.value.theme = newTheme
-  document.documentElement.classList.toggle('dark', newTheme === 'dark')
-  localStorage.setItem('theme', newTheme)
+})
+
+function toggleTheme() {
+  userStore.toggleTheme()
+  form.value.theme = userStore.theme
 }
 
 async function handleSave() {
