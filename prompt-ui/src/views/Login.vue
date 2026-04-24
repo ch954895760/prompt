@@ -26,7 +26,7 @@ async function handleLogin() {
   loading.value = true
   error.value = ''
   try {
-    await userStore.login(loginForm.value.email, loginForm.value.password)
+    await userStore.login(loginForm.value.email, loginForm.value.password, loginForm.value.remember)
     router.push('/dashboard')
   } catch (e: any) {
     error.value = e.message || '登录失败'

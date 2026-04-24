@@ -21,6 +21,9 @@ public class JwtUtil {
     @Value("${jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
 
+    @Value("${jwt.remember-me-expiration}")
+    private Long rememberMeExpiration;
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
@@ -31,6 +34,10 @@ public class JwtUtil {
 
     public String generateRefreshToken(Long userId, String username) {
         return generateToken(userId, username, refreshTokenExpiration);
+    }
+
+    public String generateRememberMeToken(Long userId, String username) {
+        return generateToken(userId, username, rememberMeExpiration);
     }
 
     private String generateToken(Long userId, String username, Long expiration) {

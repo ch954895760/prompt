@@ -77,12 +77,18 @@ public class UserService {
         }
 
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
+        String refreshToken;
+        if (Boolean.TRUE.equals(request.getRememberMe())) {
+            refreshToken = jwtUtil.generateRememberMeToken(user.getId(), user.getUsername());
+        } else {
+            refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("accessToken", accessToken);
         result.put("refreshToken", refreshToken);
         result.put("user", user);
+        result.put("rememberMe", request.getRememberMe());
         return result;
     }
 

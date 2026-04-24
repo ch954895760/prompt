@@ -45,6 +45,7 @@ jwt:
   secret: prompt-vault-jwt-secret-key-2026-very-long-and-secure-key
   access-token-expiration: 7200000
   refresh-token-expiration: 604800000
+  remember-me-expiration: 2592000000
 
 logging:
   level:

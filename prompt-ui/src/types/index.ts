@@ -66,6 +66,7 @@ export interface UserSetting {
 export interface LoginRequest {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
 export interface RegisterRequest {
@@ -78,6 +79,7 @@ export interface AuthResponse {
   accessToken: string
   refreshToken: string
   user: User
+  rememberMe?: boolean
 }
 
 export interface Result<T> {
