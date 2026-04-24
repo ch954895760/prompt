@@ -86,11 +86,8 @@ function getVariableLanguage(varName: string): string {
   const lower = varName.toLowerCase()
   const langMap: Record<string, string> = {
     'javascript': 'javascript',
-    'js': 'javascript',
     'typescript': 'typescript',
-    'ts': 'typescript',
     'python': 'python',
-    'py': 'python',
     'java': 'java',
     'html': 'xml',
     'css': 'css',
@@ -101,31 +98,67 @@ function getVariableLanguage(varName: string): string {
     'sql': 'sql',
     'bash': 'bash',
     'shell': 'bash',
-    'sh': 'bash',
     'go': 'go',
     'rust': 'rust',
-    'rs': 'rust',
-    'c': 'c',
-    'cpp': 'cpp',
-    'c++': 'cpp',
-    'csharp': 'csharp',
-    'cs': 'csharp',
     'php': 'php',
     'ruby': 'ruby',
-    'rb': 'ruby',
     'swift': 'swift',
     'kotlin': 'kotlin',
-    'kt': 'kotlin',
     'vue': 'xml',
     'react': 'javascript',
-    'jsx': 'javascript',
-    'tsx': 'typescript',
   }
 
+  // 严格匹配：变量名等于语言名，或以语言名+下划线开头，或以_+语言名结尾
   for (const [key, lang] of Object.entries(langMap)) {
+    // 完全匹配
+    if (lower === key) return lang
+    // 以语言名开头，后面跟着下划线
+    if (lower.startsWith(key + '_')) return lang
+    // 以_语言名结尾
+    if (lower.endsWith('_' + key)) return lang
+    // 包含_语言名_
+    if (lower.includes('_' + key + '_')) return lang
+  }
+
+  // 短代码别名（需要更严格的匹配）
+  const shortLangMap: Record<string, string> = {
+    '_js': 'javascript',
+    'js_': 'javascript',
+    '_ts': 'typescript',
+    'ts_': 'typescript',
+    '_py': 'python',
+    'py_': 'python',
+    '_sh': 'bash',
+    'sh_': 'bash',
+    '_rs': 'rust',
+    'rs_': 'rust',
+    '_cs': 'csharp',
+    'cs_': 'csharp',
+    '_rb': 'ruby',
+    'rb_': 'ruby',
+    '_kt': 'kotlin',
+    'kt_': 'kotlin',
+    '_jsx': 'javascript',
+    'jsx_': 'javascript',
+    '_tsx': 'typescript',
+    'tsx_': 'typescript',
+  }
+
+  for (const [key, lang] of Object.entries(shortLangMap)) {
     if (lower.includes(key)) return lang
   }
+
   return ''
+}
+
+// HTML 转义函数
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 
 const previewContent = computed(() => {
@@ -143,14 +176,11 @@ const previewContent = computed(() => {
         const highlighted = hljs.highlight(value, { language: lang }).value
         formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color);"><code class="hljs language-${lang}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
       } catch (e) {
-        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px;"><code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; color: var(--text-primary);">${value.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`
+        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px;"><code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; color: var(--text-primary);">${escapeHtml(value)}</code></pre>`
       }
-    } else if (value.includes('\n')) {
-      // 多行文本：将换行符转换为 <br> 标签
-      formattedValue = value.replace(/\n/g, '<br>')
     } else {
-      // 单行文本
-      formattedValue = value
+      // 文本类型变量：直接追加替换，不做特殊处理，但需要转义 HTML
+      formattedValue = escapeHtml(value)
     }
     preview = preview.replace(regex, formattedValue)
   }

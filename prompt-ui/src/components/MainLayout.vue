@@ -174,14 +174,18 @@ watch(() => route.query.q, (q) => {
 
         <div class="flex items-center gap-2">
           <button @click="toggleTheme"
-            class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
+            class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
             style="color: var(--text-secondary)"
+            @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+            @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
           >
             <Sun v-if="userStore.theme === 'dark'" class="w-4 h-4" />
             <Moon v-else class="w-4 h-4" />
           </button>
-          <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800 relative"
+          <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors relative"
             style="color: var(--text-secondary)"
+            @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+            @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
           >
             <Bell class="w-4 h-4" />
             <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#f97316]"></span>
