@@ -2,11 +2,11 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
-import { getPrompts, deletePrompt, getPromptList, usePrompt } from '@/api/prompt'
+import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
-import { Plus, LayoutGrid, List, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const route = useRoute()
@@ -91,6 +91,7 @@ watch(() => route.query.q, (q) => {
 
 const deleteDialogVisible = ref(false)
 const deleteTarget = ref<{ id: number; title: string } | null>(null)
+const importFile = ref<HTMLInputElement | null>(null)
 
 const toastVisible = ref(false)
 const toastMessage = ref('')
@@ -109,6 +110,61 @@ function getPreview(content: string): string {
   return content.substring(0, 80).replace(/\{\{(\w+)\}\}/g, '<span style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{$1}}</span>') + '...'
 }
 
+async function handleExportJson() {
+  try {
+    const blob = await exportPromptsJson()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `prompts-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('JSON 导出成功')
+  } catch (e: any) {
+    showToast(e.message || '导出失败')
+  }
+}
+
+async function handleExportMarkdown() {
+  try {
+    const blob = await exportPromptsMarkdown()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `prompts-${new Date().toISOString().slice(0, 10)}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('Markdown 导出成功')
+  } catch (e: any) {
+    showToast(e.message || '导出失败')
+  }
+}
+
+function handleImportClick() {
+  importFile.value?.click()
+}
+
+async function handleImportFile(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (!Array.isArray(data)) {
+      showToast('文件格式错误：应为 JSON 数组')
+      return
+    }
+    const count = await importPrompts(data)
+    showToast(`成功导入 ${count} 条提示词`)
+    await loadData()
+  } catch (e: any) {
+    showToast(e.message || '导入失败')
+  } finally {
+    target.value = ''
+  }
+}
+
 onMounted(loadData)
 </script>
 
@@ -120,12 +176,39 @@ onMounted(loadData)
           <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">提示词库</h2>
           <p class="text-sm" style="color: var(--text-secondary)">管理你的所有提示词模板</p>
         </div>
-        <button @click="goToEditor()"
-          class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
-        >
-          <Plus class="w-4 h-4" />
-          新建提示词
-        </button>
+        <div class="flex items-center gap-2">
+          <input ref="importFile" type="file" accept=".json" class="hidden" @change="handleImportFile">
+          <button @click="handleImportClick"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            style="border-color: var(--border-color); color: var(--text-secondary);"
+            title="导入数据"
+          >
+            <Upload class="w-4 h-4" />
+            导入
+          </button>
+          <button @click="handleExportJson"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            style="border-color: var(--border-color); color: var(--text-secondary);"
+            title="导出 JSON"
+          >
+            <Download class="w-4 h-4" />
+            导出 JSON
+          </button>
+          <button @click="handleExportMarkdown"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            style="border-color: var(--border-color); color: var(--text-secondary);"
+            title="导出 Markdown"
+          >
+            <Download class="w-4 h-4" />
+            导出 Markdown
+          </button>
+          <button @click="goToEditor()"
+            class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
+          >
+            <Plus class="w-4 h-4" />
+            新建提示词
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->

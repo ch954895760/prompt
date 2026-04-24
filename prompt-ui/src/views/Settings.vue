@@ -4,19 +4,18 @@ import MainLayout from '@/components/MainLayout.vue'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import AvatarUpload from '@/components/AvatarUpload.vue'
 import { getSettings, updateSettings } from '@/api/setting'
-import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
+
 import { updateUserAvatar, changePassword } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
 import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
-import { User, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
+import { User, Palette, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
 
 const userStore = useUserStore()
 const setting = ref<UserSetting | null>(null)
 const loading = ref(false)
 
 const showApiKey = ref(false)
-const importFile = ref<HTMLInputElement | null>(null)
 const avatarUrl = ref('')
 const form = ref({
   username: '',
@@ -148,60 +147,6 @@ async function handleSave() {
     showToast(e.message || '保存失败')
   } finally {
     loading.value = false
-  }
-}
-
-async function handleExportJson() {
-  try {
-    const blob = await exportPromptsJson()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `prompts-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    showToast('JSON 导出成功')
-  } catch (e: any) {
-    showToast(e.message || '导出失败')
-  }
-}
-
-async function handleExportMarkdown() {
-  try {
-    const blob = await exportPromptsMarkdown()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `prompts-${new Date().toISOString().slice(0, 10)}.md`
-    a.click()
-    URL.revokeObjectURL(url)
-    showToast('Markdown 导出成功')
-  } catch (e: any) {
-    showToast(e.message || '导出失败')
-  }
-}
-
-function handleImportClick() {
-  importFile.value?.click()
-}
-
-async function handleImportFile(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-  try {
-    const text = await file.text()
-    const data = JSON.parse(text)
-    if (!Array.isArray(data)) {
-      showToast('文件格式错误：应为 JSON 数组')
-      return
-    }
-    const count = await importPrompts(data)
-    showToast(`成功导入 ${count} 条提示词`)
-  } catch (e: any) {
-    showToast(e.message || '导入失败')
-  } finally {
-    target.value = ''
   }
 }
 
@@ -559,38 +504,6 @@ onMounted(() => {
                 <Sun v-if="form.theme !== 'dark'" class="w-3 h-3 text-amber-500" />
                 <Moon v-else class="w-3 h-3 text-indigo-500" />
               </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Data -->
-        <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
-            <Database class="w-4 h-4" style="color: var(--accent)" />
-            数据管理
-          </h3>
-          <div class="flex flex-wrap gap-3">
-            <button @click="handleExportJson"
-              class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
-              style="border-color: var(--border-color); color: var(--text-secondary);"
-            >
-              <Download class="w-4 h-4" />
-              导出 JSON
-            </button>
-            <button @click="handleExportMarkdown"
-              class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
-              style="border-color: var(--border-color); color: var(--text-secondary);"
-            >
-              <Download class="w-4 h-4" />
-              导出 Markdown
-            </button>
-            <input ref="importFile" type="file" accept=".json" class="hidden" @change="handleImportFile">
-            <button @click="handleImportClick"
-              class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
-              style="border-color: var(--border-color); color: var(--text-secondary);"
-            >
-              <Upload class="w-4 h-4" />
-              导入数据
             </button>
           </div>
         </div>
