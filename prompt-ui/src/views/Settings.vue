@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import { getSettings, updateSettings, aiTestStream } from '@/api/setting'
 import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
 import { useUserStore } from '@/stores/user'
@@ -28,6 +29,8 @@ const form = ref({
 const aiProviders = ref<AiProvider[]>([])
 const showAiProviderModal = ref(false)
 const editingProvider = ref<AiProvider | null>(null)
+const deletingProvider = ref<AiProvider | null>(null)
+const showDeleteDialog = ref(false)
 const aiProviderForm = ref({
   name: '',
   provider: 'openai',
@@ -271,16 +274,22 @@ async function handleSaveAiProvider() {
   }
 }
 
-async function handleDeleteAiProvider(provider: AiProvider) {
-  if (!confirm(`确定要删除 "${provider.name}" 吗？`)) {
-    return
-  }
+function handleDeleteAiProvider(provider: AiProvider) {
+  deletingProvider.value = provider
+  showDeleteDialog.value = true
+}
+
+async function confirmDeleteAiProvider() {
+  if (!deletingProvider.value) return
   try {
-    await deleteAiProvider(provider.id)
+    await deleteAiProvider(deletingProvider.value.id)
     showToast('AI配置已删除')
     await loadAiProviders()
   } catch (e: any) {
     showToast(e.message || '删除失败')
+  } finally {
+    deletingProvider.value = null
+    showDeleteDialog.value = false
   }
 }
 
@@ -758,6 +767,13 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirm Dialog -->
+    <DeleteConfirmDialog
+      v-model="showDeleteDialog"
+      :item-name="deletingProvider?.name"
+      @confirm="confirmDeleteAiProvider"
+    />
 
     <!-- Toast -->
     <div v-if="toastVisible"
