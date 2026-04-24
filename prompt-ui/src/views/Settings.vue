@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
-import { getSettings, updateSettings } from '@/api/setting'
+import { getSettings, updateSettings, aiTestStream } from '@/api/setting'
 import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
 import { useUserStore } from '@/stores/user'
-import type { UserSetting } from '@/types'
-import { User, Cpu, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon } from 'lucide-vue-next'
+import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
+import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
+import { User, Cpu, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Sparkles, MessageSquare } from 'lucide-vue-next'
 
 const userStore = useUserStore()
 const setting = ref<UserSetting | null>(null)
@@ -23,11 +24,56 @@ const form = ref({
   model: '',
 })
 
+// AI Provider Management
+const aiProviders = ref<AiProvider[]>([])
+const showAiProviderModal = ref(false)
+const editingProvider = ref<AiProvider | null>(null)
+const aiProviderForm = ref({
+  name: '',
+  provider: 'openai',
+  apiBaseUrl: '',
+  apiKey: '',
+  model: '',
+  isDefault: false,
+})
+const showAiProviderApiKey = ref(false)
+const aiProviderLoading = ref(false)
+
+// AI Test
+const testContent = ref('')
+const testResponse = ref('')
+const isTesting = ref(false)
+const testAbort = ref<(() => void) | null>(null)
+const selectedTestProvider = ref<number | null>(null)
+
+const providerOptions = [
+  { value: 'openai', label: 'OpenAI', icon: '⚡', models: ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
+  { value: 'anthropic', label: 'Anthropic Claude', icon: '🌟', models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20240620'] },
+  { value: 'google', label: 'Google Gemini', icon: '🔮', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'] },
+  { value: 'deepseek', label: 'DeepSeek', icon: '🐋', models: ['deepseek-chat', 'deepseek-coder'] },
+  { value: 'qwen', label: '通义千问', icon: '🌙', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
+  { value: 'wenxin', label: '文心一言', icon: '📚', models: ['ernie-bot-4', 'ernie-bot'] },
+  { value: 'custom', label: '自定义', icon: '⚙️', models: [] },
+]
+
+const currentProvider = computed(() => {
+  return providerOptions.find(p => p.value === aiProviderForm.value.provider)
+})
+
+const defaultBaseUrls: Record<string, string> = {
+  openai: 'https://api.openai.com/v1',
+  anthropic: 'https://api.anthropic.com',
+  google: 'https://generativelanguage.googleapis.com',
+  deepseek: 'https://api.deepseek.com',
+  qwen: 'https://dashscope.aliyuncs.com/api/v1',
+  wenxin: 'https://aip.baidubce.com',
+  custom: '',
+}
+
 async function loadData() {
   try {
     const s = await getSettings()
     setting.value = s
-    // 如果服务器有设置主题，且本地没有手动设置过，则同步服务器主题
     if (s.theme && !localStorage.getItem('theme')) {
       userStore.setTheme(s.theme)
     }
@@ -42,6 +88,14 @@ async function loadData() {
     }
   } catch (e) {
     console.error('[DEBUG] Failed to load settings:', e)
+  }
+}
+
+async function loadAiProviders() {
+  try {
+    aiProviders.value = await getAiProviders()
+  } catch (e) {
+    console.error('[DEBUG] Failed to load AI providers:', e)
   }
 }
 
@@ -126,6 +180,161 @@ async function handleImportFile(event: Event) {
   }
 }
 
+// AI Provider Functions
+function openAddAiProvider() {
+  editingProvider.value = null
+  aiProviderForm.value = {
+    name: '',
+    provider: 'openai',
+    apiBaseUrl: defaultBaseUrls.openai,
+    apiKey: '',
+    model: 'gpt-4',
+    isDefault: aiProviders.value.length === 0,
+  }
+  showAiProviderApiKey.value = false
+  showAiProviderModal.value = true
+}
+
+function openEditAiProvider(provider: AiProvider) {
+  editingProvider.value = provider
+  aiProviderForm.value = {
+    name: provider.name,
+    provider: provider.provider,
+    apiBaseUrl: provider.apiBaseUrl,
+    apiKey: '',
+    model: provider.model,
+    isDefault: provider.isDefault,
+  }
+  showAiProviderApiKey.value = false
+  showAiProviderModal.value = true
+}
+
+function onProviderChange() {
+  const provider = aiProviderForm.value.provider
+  aiProviderForm.value.apiBaseUrl = defaultBaseUrls[provider] || ''
+  const models = providerOptions.find(p => p.value === provider)?.models || []
+  aiProviderForm.value.model = models[0] || ''
+}
+
+async function handleSaveAiProvider() {
+  if (!aiProviderForm.value.name.trim()) {
+    showToast('请输入配置名称')
+    return
+  }
+  if (!aiProviderForm.value.apiBaseUrl.trim()) {
+    showToast('请输入API Base URL')
+    return
+  }
+  if (!aiProviderForm.value.model.trim()) {
+    showToast('请输入模型名称')
+    return
+  }
+
+  aiProviderLoading.value = true
+  try {
+    if (editingProvider.value) {
+      const updateData: AiProviderUpdateRequest = {
+        name: aiProviderForm.value.name,
+        provider: aiProviderForm.value.provider,
+        apiBaseUrl: aiProviderForm.value.apiBaseUrl,
+        model: aiProviderForm.value.model,
+        isDefault: aiProviderForm.value.isDefault,
+      }
+      if (aiProviderForm.value.apiKey) {
+        updateData.apiKey = aiProviderForm.value.apiKey
+      }
+      await updateAiProvider(editingProvider.value.id, updateData)
+      showToast('AI配置已更新')
+    } else {
+      if (!aiProviderForm.value.apiKey) {
+        showToast('请输入API Key')
+        aiProviderLoading.value = false
+        return
+      }
+      const createData: AiProviderCreateRequest = {
+        name: aiProviderForm.value.name,
+        provider: aiProviderForm.value.provider,
+        apiBaseUrl: aiProviderForm.value.apiBaseUrl,
+        apiKey: aiProviderForm.value.apiKey,
+        model: aiProviderForm.value.model,
+        isDefault: aiProviderForm.value.isDefault,
+      }
+      await createAiProvider(createData)
+      showToast('AI配置已添加')
+    }
+    showAiProviderModal.value = false
+    await loadAiProviders()
+  } catch (e: any) {
+    showToast(e.message || '保存失败')
+  } finally {
+    aiProviderLoading.value = false
+  }
+}
+
+async function handleDeleteAiProvider(provider: AiProvider) {
+  if (!confirm(`确定要删除 "${provider.name}" 吗？`)) {
+    return
+  }
+  try {
+    await deleteAiProvider(provider.id)
+    showToast('AI配置已删除')
+    await loadAiProviders()
+  } catch (e: any) {
+    showToast(e.message || '删除失败')
+  }
+}
+
+async function handleSetDefault(provider: AiProvider) {
+  if (provider.isDefault) return
+  try {
+    await setDefaultAiProvider(provider.id)
+    showToast('已设为默认')
+    await loadAiProviders()
+  } catch (e: any) {
+    showToast(e.message || '设置失败')
+  }
+}
+
+function getProviderLabel(providerValue: string) {
+  return providerOptions.find(p => p.value === providerValue)?.label || providerValue
+}
+
+function getProviderIcon(providerValue: string) {
+  return providerOptions.find(p => p.value === providerValue)?.icon || '🤖'
+}
+
+// AI Test Functions
+async function handleAiTest() {
+  if (!testContent.value.trim()) {
+    showToast('请输入测试内容')
+    return
+  }
+  if (isTesting.value) {
+    testAbort.value?.()
+    return
+  }
+
+  isTesting.value = true
+  testResponse.value = ''
+
+  const abort = aiTestStream(testContent.value, {
+    onChunk: (text) => {
+      testResponse.value += text
+    },
+    onDone: () => {
+      isTesting.value = false
+      testAbort.value = null
+    },
+    onError: (error) => {
+      showToast(error)
+      isTesting.value = false
+      testAbort.value = null
+    },
+  }, selectedTestProvider.value)
+
+  testAbort.value = abort
+}
+
 const toastVisible = ref(false)
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout>
@@ -139,7 +348,10 @@ function showToast(message: string) {
   }, 2500)
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadAiProviders()
+})
 </script>
 
 <template>
@@ -150,7 +362,7 @@ onMounted(loadData)
         <p class="text-sm" style="color: var(--text-secondary)">管理你的账户与应用偏好</p>
       </div>
 
-      <div class="max-w-2xl space-y-6">
+      <div class="max-w-3xl space-y-6">
         <!-- Profile -->
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
@@ -187,11 +399,134 @@ onMounted(loadData)
           </div>
         </div>
 
-        <!-- AI Integration -->
+        <!-- AI Provider Management -->
+        <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-semibold flex items-center gap-2" style="color: var(--text-primary)">
+              <Bot class="w-4 h-4" style="color: var(--accent)" />
+              AI 模型配置
+            </h3>
+            <button @click="openAddAiProvider"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+              style="background: var(--accent); color: white;"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              添加配置
+            </button>
+          </div>
+
+          <!-- AI Provider List -->
+          <div class="space-y-3">
+            <div v-if="aiProviders.length === 0" class="text-center py-8 rounded-xl" style="background: var(--bg-primary); border: 1px dashed var(--border-color);">
+              <Bot class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted)" />
+              <p class="text-sm" style="color: var(--text-muted)">暂无AI配置</p>
+              <p class="text-xs mt-1" style="color: var(--text-muted)">点击上方按钮添加你的第一个AI模型</p>
+            </div>
+
+            <div v-for="provider in aiProviders" :key="provider.id"
+              class="flex items-center gap-3 p-4 rounded-xl transition-all hover:shadow-md"
+              :class="provider.isDefault ? 'ring-1' : ''"
+              style="background: var(--bg-primary); border: 1px solid var(--border-color);"
+              :style="provider.isDefault ? 'ring-color: var(--accent)' : ''"
+            >
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                style="background: var(--bg-secondary);"
+              >
+                {{ getProviderIcon(provider.provider) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-sm truncate" style="color: var(--text-primary)">{{ provider.name }}</span>
+                  <span v-if="provider.isDefault"
+                    class="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style="background: var(--accent); color: white;"
+                  >
+                    默认
+                  </span>
+                </div>
+                <div class="text-xs mt-0.5" style="color: var(--text-muted)">
+                  {{ getProviderLabel(provider.provider) }} · {{ provider.model }}
+                </div>
+              </div>
+              <div class="flex items-center gap-1">
+                <button v-if="!provider.isDefault" @click="handleSetDefault(provider)"
+                  class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  style="color: var(--text-muted);"
+                  title="设为默认"
+                >
+                  <Check class="w-4 h-4" />
+                </button>
+                <button @click="openEditAiProvider(provider)"
+                  class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  style="color: var(--text-muted);"
+                  title="编辑"
+                >
+                  <Edit2 class="w-4 h-4" />
+                </button>
+                <button @click="handleDeleteAiProvider(provider)"
+                  class="p-2 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                  style="color: var(--text-muted);"
+                  title="删除"
+                >
+                  <Trash2 class="w-4 h-4 hover:text-red-500" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Test -->
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
+            <Sparkles class="w-4 h-4" style="color: var(--accent)" />
+            AI 测试
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">选择模型</label>
+              <select v-model="selectedTestProvider"
+                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+              >
+                <option :value="null">使用默认配置</option>
+                <option v-for="provider in aiProviders" :key="provider.id" :value="provider.id">
+                  {{ provider.name }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">测试内容</label>
+              <textarea v-model="testContent" rows="3"
+                class="w-full px-4 py-2.5 rounded-xl text-sm resize-none transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="输入你想测试的提示词..."
+              ></textarea>
+            </div>
+            <button @click="handleAiTest" :disabled="isTesting && !testAbort"
+              class="w-full py-2.5 font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+              :style="isTesting ? 'background: var(--bg-tertiary); color: var(--text-muted);' : 'background: var(--accent); color: white;'"
+            >
+              <span v-if="isTesting" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+              {{ isTesting ? '停止测试' : '开始测试' }}
+            </button>
+            <div v-if="testResponse" class="p-4 rounded-xl text-sm leading-relaxed"
+              style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+            >
+              <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid var(--border-color);">
+                <MessageSquare class="w-4 h-4" style="color: var(--accent);" />
+                <span class="text-xs font-medium" style="color: var(--text-secondary);">AI 回复</span>
+              </div>
+              <div class="whitespace-pre-wrap">{{ testResponse }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legacy AI Integration (Hidden but kept for backward compatibility) -->
+        <div class="rounded-2xl p-6 opacity-60" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
             <Cpu class="w-4 h-4" style="color: var(--accent)" />
-            AI 集成
+            旧版 AI 配置
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full ml-2" style="background: var(--bg-tertiary); color: var(--text-muted);">已弃用</span>
           </h3>
           <div class="space-y-4">
             <div>
@@ -212,8 +547,6 @@ onMounted(loadData)
                 class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 placeholder="https://api.openai.com/v1"
-                @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
-                @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
             </div>
             <div>
@@ -223,8 +556,6 @@ onMounted(loadData)
                   class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); font-family: monospace;"
                   placeholder="sk-xxxxxxxxxxxxxxxx"
-                  @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
-                  @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
                 >
                 <button @click="showApiKey = !showApiKey"
                   class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -234,7 +565,6 @@ onMounted(loadData)
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
               </div>
-              <p class="text-[10px] mt-1.5" style="color: var(--text-muted)">你的 API Key 将加密存储，仅用于代理请求</p>
             </div>
             <div>
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">Model</label>
@@ -242,8 +572,6 @@ onMounted(loadData)
                 class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 placeholder="gpt-4, claude-3-5-sonnet 等"
-                @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
-                @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
             </div>
           </div>
@@ -314,6 +642,123 @@ onMounted(loadData)
       </div>
     </div>
 
+    <!-- AI Provider Modal -->
+    <div v-if="showAiProviderModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style="background: rgba(0, 0, 0, 0.5);"
+      @click.self="showAiProviderModal = false"
+    >
+      <div class="w-full max-w-lg rounded-2xl p-6 animate-fade-in"
+        style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
+      >
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-semibold text-lg" style="color: var(--text-primary)">
+            {{ editingProvider ? '编辑AI配置' : '添加AI配置' }}
+          </h3>
+          <button @click="showAiProviderModal = false"
+            class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+            style="color: var(--text-muted);"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">配置名称</label>
+            <input v-model="aiProviderForm.name" type="text"
+              class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+              style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+              placeholder="例如：我的OpenAI"
+            >
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">提供商</label>
+            <select v-model="aiProviderForm.provider" @change="onProviderChange"
+              class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+              style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+            >
+              <option v-for="opt in providerOptions" :key="opt.value" :value="opt.value">
+                {{ opt.icon }} {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">API Base URL</label>
+            <input v-model="aiProviderForm.apiBaseUrl" type="text"
+              class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+              style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+              placeholder="https://api.openai.com/v1"
+            >
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">
+              API Key
+              <span v-if="editingProvider" class="text-[10px] ml-1" style="color: var(--text-muted)">(留空则保持不变)</span>
+            </label>
+            <div class="relative">
+              <input v-model="aiProviderForm.apiKey" :type="showAiProviderApiKey ? 'text' : 'password'"
+                class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); font-family: monospace;"
+                placeholder="sk-xxxxxxxxxxxxxxxx"
+              >
+              <button @click="showAiProviderApiKey = !showAiProviderApiKey"
+                class="absolute right-3 top-1/2 -translate-y-1/2"
+                style="color: var(--text-muted);"
+              >
+                <Eye v-if="!showAiProviderApiKey" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">模型</label>
+            <div class="flex gap-2">
+              <select v-if="currentProvider?.models?.length" v-model="aiProviderForm.model"
+                class="flex-1 px-4 py-2.5 rounded-xl text-sm transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+              >
+                <option v-for="m in currentProvider.models" :key="m" :value="m">{{ m }}</option>
+              </select>
+              <input v-model="aiProviderForm.model" type="text"
+                class="flex-1 px-4 py-2.5 rounded-xl text-sm transition-all"
+                :class="currentProvider?.models?.length ? 'hidden' : ''"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="输入模型名称"
+              >
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="isDefault" v-model="aiProviderForm.isDefault"
+              class="w-4 h-4 rounded"
+              style="accent-color: var(--accent);"
+            >
+            <label for="isDefault" class="text-sm" style="color: var(--text-primary)">设为默认配置</label>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button @click="showAiProviderModal = false"
+            class="flex-1 py-2.5 font-medium rounded-xl border transition-all"
+            style="border-color: var(--border-color); color: var(--text-secondary);"
+          >
+            取消
+          </button>
+          <button @click="handleSaveAiProvider" :disabled="aiProviderLoading"
+            class="flex-1 py-2.5 font-medium rounded-xl transition-all"
+            style="background: var(--accent); color: white;"
+          >
+            {{ aiProviderLoading ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast -->
     <div v-if="toastVisible"
       class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
@@ -331,5 +776,14 @@ onMounted(loadData)
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>

@@ -8,8 +8,10 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.prompt.dto.AiTestRequest;
 import com.prompt.dto.UserSettingUpdateRequest;
+import com.prompt.entity.AiProvider;
 import com.prompt.entity.UserSetting;
 import com.prompt.exception.BusinessException;
+import com.prompt.service.AiProviderService;
 import com.prompt.service.UserSettingService;
 import com.prompt.util.AesUtil;
 import com.prompt.vo.Result;
@@ -31,6 +33,7 @@ import java.util.Map;
 public class UserSettingController {
 
     private final UserSettingService userSettingService;
+    private final AiProviderService aiProviderService;
     private final AesUtil aesUtil;
 
     private Long getCurrentUserId(Authentication authentication) {
@@ -50,31 +53,47 @@ public class UserSettingController {
     @PostMapping(value = "/ai-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter aiTest(@RequestBody AiTestRequest request, Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
-        UserSetting setting = userSettingService.getByUserId(userId);
-
-        if (setting.getApiBaseUrl() == null || setting.getApiBaseUrl().isEmpty()) {
-            throw new BusinessException("AI 测试功能需要配置 base_url。请在设置中配置后使用。");
-        }
-        if (setting.getApiKeyEncrypted() == null || setting.getApiKeyEncrypted().isEmpty()) {
-            throw new BusinessException("AI 测试功能需要配置 api_key。请在设置中配置后使用。");
-        }
-
+        
+        String baseUrl;
         String apiKey;
-        try {
-            apiKey = aesUtil.decrypt(setting.getApiKeyEncrypted());
-        } catch (Exception e) {
-            log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
-            throw new BusinessException("API Key 解密失败，请重新配置");
+        String model;
+        
+        if (request.getProviderId() != null) {
+            AiProvider provider = aiProviderService.getEntityById(request.getProviderId(), userId);
+            if (provider == null) {
+                throw new BusinessException("AI提供商不存在");
+            }
+            baseUrl = provider.getApiBaseUrl();
+            model = provider.getModel();
+            try {
+                apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+            } catch (Exception e) {
+                log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
+                throw new BusinessException("API Key 解密失败，请重新配置");
+            }
+        } else {
+            UserSetting setting = userSettingService.getByUserId(userId);
+            if (setting.getApiBaseUrl() == null || setting.getApiBaseUrl().isEmpty()) {
+                throw new BusinessException("AI 测试功能需要配置 base_url。请在设置中配置后使用。");
+            }
+            if (setting.getApiKeyEncrypted() == null || setting.getApiKeyEncrypted().isEmpty()) {
+                throw new BusinessException("AI 测试功能需要配置 api_key。请在设置中配置后使用。");
+            }
+            baseUrl = setting.getApiBaseUrl();
+            model = setting.getModel();
+            if (model == null || model.isEmpty()) {
+                model = "gpt-4.1-mini";
+            }
+            try {
+                apiKey = aesUtil.decrypt(setting.getApiKeyEncrypted());
+            } catch (Exception e) {
+                log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
+                throw new BusinessException("API Key 解密失败，请重新配置");
+            }
         }
 
-        String baseUrl = setting.getApiBaseUrl();
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-        }
-
-        String model = setting.getModel();
-        if (model == null || model.isEmpty()) {
-            model = "gpt-4.1-mini";
         }
 
         OpenAIClient client = OpenAIOkHttpClient.builder()

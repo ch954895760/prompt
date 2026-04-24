@@ -84,3 +84,20 @@ CREATE TABLE IF NOT EXISTS user_setting (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- AI提供商配置表
+CREATE TABLE IF NOT EXISTS ai_provider (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL COMMENT '配置名称',
+    provider VARCHAR(50) NOT NULL COMMENT '提供商类型: openai, claude, gemini等',
+    api_base_url VARCHAR(255) NOT NULL COMMENT 'API基础URL',
+    api_key_encrypted VARCHAR(255) NOT NULL COMMENT '加密的API Key',
+    model VARCHAR(100) NOT NULL COMMENT '模型名称',
+    is_default TINYINT DEFAULT 0 COMMENT '是否默认',
+    sort_order INT DEFAULT 0 COMMENT '排序顺序',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_user_default (user_id, is_default)
+);

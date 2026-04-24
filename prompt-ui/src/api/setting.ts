@@ -9,8 +9,8 @@ export function updateSettings(data: Partial<UserSetting>): Promise<UserSetting>
   return request.put('/settings', data)
 }
 
-export function aiTest(content: string): Promise<string> {
-  return request.post('/settings/ai-test', { content })
+export function aiTest(content: string, providerId?: number | null): Promise<string> {
+  return request.post('/settings/ai-test', { content, providerId })
 }
 
 export interface AiTestStreamCallbacks {
@@ -19,8 +19,11 @@ export interface AiTestStreamCallbacks {
   onError: (error: string) => void
 }
 
-export function aiTestStream(content: string, callbacks: AiTestStreamCallbacks): () => void {
-  const token = localStorage.getItem('token') || ''
+export function aiTestStream(content: string, callbacks: AiTestStreamCallbacks, providerId?: number | null): () => void {
+  const STORAGE_KEY_PREFIX = 'prompt_vault_'
+  const rememberMe = localStorage.getItem(`${STORAGE_KEY_PREFIX}remember_me`) === 'true'
+  const storage = rememberMe ? localStorage : sessionStorage
+  const token = storage.getItem(`${STORAGE_KEY_PREFIX}token`) || ''
 
   const controller = new AbortController()
 
@@ -30,7 +33,7 @@ export function aiTestStream(content: string, callbacks: AiTestStreamCallbacks):
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, providerId }),
     signal: controller.signal,
   }).then(async (response) => {
     if (!response.ok) {

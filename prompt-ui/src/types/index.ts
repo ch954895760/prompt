@@ -63,6 +63,36 @@ export interface UserSetting {
   model?: string
 }
 
+export interface AiProvider {
+  id: number
+  name: string
+  provider: string
+  apiBaseUrl: string
+  model: string
+  isDefault: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AiProviderCreateRequest {
+  name: string
+  provider: string
+  apiBaseUrl: string
+  apiKey: string
+  model: string
+  isDefault: boolean
+}
+
+export interface AiProviderUpdateRequest {
+  name: string
+  provider: string
+  apiBaseUrl: string
+  apiKey?: string
+  model: string
+  isDefault: boolean
+}
+
 export interface LoginRequest {
   email: string
   password: string

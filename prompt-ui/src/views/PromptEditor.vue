@@ -10,6 +10,8 @@ import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
+import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
+import type { AiProvider } from '@/types'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -49,6 +51,8 @@ const aiLoading = ref(false)
 const loading = ref(false)
 const aiAbort = ref<(() => void) | null>(null)
 const aiContentRef = ref<HTMLDivElement | null>(null)
+const aiProviders = ref<AiProvider[]>([])
+const selectedAiProvider = ref<number | null>(null)
 
 function scrollAiToBottom() {
   nextTick(() => {
@@ -88,12 +92,21 @@ watch(extractedVars, (vars) => {
 })
 
 async function loadData() {
-  const [cList, tList] = await Promise.all([
+  const [cList, tList, providers] = await Promise.all([
     getCategoryList(),
     getTags(),
+    getAiProviders(),
   ])
   categories.value = cList
   tags.value = tList
+  aiProviders.value = providers
+  // Set default provider
+  const defaultProvider = providers.find(p => p.isDefault)
+  if (defaultProvider) {
+    selectedAiProvider.value = defaultProvider.id
+  } else if (providers.length > 0) {
+    selectedAiProvider.value = providers[0].id
+  }
 }
 
 async function loadPrompt() {
@@ -130,7 +143,7 @@ async function handleSave() {
       description: description.value,
       categoryId: categoryId.value || undefined,
       tagIds: selectedTagIds.value,
-      variablesJson: extractedVars.value.length > 0 ? variableValues.value : undefined,
+      variablesJson: extractedVars.value.length > 0 ? JSON.stringify(variableValues.value) : undefined,
     }
     if (isEdit.value) {
       await updatePrompt(promptId.value, data)
@@ -181,7 +194,7 @@ function handleTest() {
       aiAbort.value = null
       scrollAiToBottom()
     },
-  })
+  }, selectedAiProvider.value)
 }
 
 function handleStopTest() {
@@ -397,7 +410,15 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="flex items-center gap-3 pt-2">
+          <div class="flex items-center gap-3 pt-2 flex-wrap">
+            <select v-model="selectedAiProvider"
+              class="px-3 py-2.5 rounded-xl text-sm transition-all"
+              style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+            >
+              <option v-for="provider in aiProviders" :key="provider.id" :value="provider.id">
+                {{ provider.name }}
+              </option>
+            </select>
             <button v-if="!aiLoading" @click="handleTest"
               class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
               style="border-color: var(--accent); color: var(--accent);"
