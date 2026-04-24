@@ -9,6 +9,7 @@ import type { Category, Tag, Prompt } from '@/types'
 import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import VariableInput from '@/components/VariableInput.vue'
+import AiTestDialog from '@/components/AiTestDialog.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
@@ -54,6 +55,7 @@ const aiAbort = ref<(() => void) | null>(null)
 const aiContentRef = ref<HTMLDivElement | null>(null)
 const aiProviders = ref<AiProvider[]>([])
 const selectedAiProvider = ref<number | null>(null)
+const showAiTestDialog = ref(false)
 
 function scrollAiToBottom() {
   nextTick(() => {
@@ -66,6 +68,12 @@ function scrollAiToBottom() {
 const renderedAiResult = computed(() => {
   if (!aiResult.value) return ''
   return marked(aiResult.value) as string
+})
+
+const processedPrompt = computed(() => {
+  return content.value.replace(/\{\{(\w+)\}\}/g, (match: string, varName: string) => {
+    return variableValues.value[varName] || match
+  })
 })
 
 const extractedVars = computed(() => {
@@ -238,31 +246,7 @@ function handleCopy() {
 }
 
 function handleTest() {
-  showAiResult.value = true
-  aiResult.value = ''
-  aiLoading.value = true
-
-  const text = content.value.replace(/\{\{(\w+)\}\}/g, (match: string, varName: string) => {
-    return variableValues.value[varName] || match
-  })
-
-  aiAbort.value = aiTestStream(text, {
-    onChunk: (chunk: string) => {
-      aiResult.value += chunk
-      scrollAiToBottom()
-    },
-    onDone: () => {
-      aiLoading.value = false
-      aiAbort.value = null
-      scrollAiToBottom()
-    },
-    onError: (error: string) => {
-      aiResult.value = error
-      aiLoading.value = false
-      aiAbort.value = null
-      scrollAiToBottom()
-    },
-  }, selectedAiProvider.value)
+  showAiTestDialog.value = true
 }
 
 function handleStopTest() {
@@ -542,7 +526,7 @@ onMounted(() => {
           <!-- Preview -->
           <div>
             <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">实时预览</label>
-            <div class="rounded-2xl p-6 min-h-[200px] relative transition-all"
+            <div class="rounded-2xl p-6 min-h-[400px] relative transition-all"
               style="background: var(--bg-secondary); border: 1px solid var(--border-color); font-family: 'Crimson Pro', Georgia, serif; line-height: 1.8;"
             >
               <div class="absolute top-4 right-4">
@@ -611,6 +595,13 @@ onMounted(() => {
       :description="`确定要回滚到版本 ${rollbackVersion} 吗？当前内容将被替换，此操作不可恢复。`"
       confirm-text="回滚"
       @confirm="confirmRollback"
+    />
+
+    <!-- AI Test Dialog -->
+    <AiTestDialog
+      v-model="showAiTestDialog"
+      :initial-prompt="processedPrompt"
+      :provider-id="selectedAiProvider"
     />
 
     <!-- Toast -->
