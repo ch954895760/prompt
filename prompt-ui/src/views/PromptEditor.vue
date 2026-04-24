@@ -470,14 +470,14 @@ onMounted(() => {
               </option>
             </select>
             <button v-if="!aiLoading" @click="handleTest"
-              class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
+              class="flex items-center gap-1.5 px-4 py-2 border-2 text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
               style="border-color: var(--accent); color: var(--accent);"
             >
               <Play class="w-4 h-4" />
               测试运行
             </button>
             <button v-else @click="handleStopTest"
-              class="flex items-center gap-2 px-5 py-2.5 border-2 font-medium rounded-xl transition-all active:scale-[0.98]"
+              class="flex items-center gap-1.5 px-4 py-2 border-2 text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
               style="border-color: #dc2626; color: #dc2626;"
             >
               <Square class="w-4 h-4" />
