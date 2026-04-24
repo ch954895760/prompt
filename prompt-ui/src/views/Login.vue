@@ -11,7 +11,7 @@ const loading = ref(false)
 const error = ref('')
 
 const loginForm = ref({ email: '', password: '', remember: false })
-const registerForm = ref({ username: '', email: '', password: '' })
+const registerForm = ref({ username: '', email: '', password: '', confirmPassword: '' })
 
 function toggleTheme() {
   userStore.toggleTheme()
@@ -38,6 +38,13 @@ async function handleLogin() {
 async function handleRegister() {
   loading.value = true
   error.value = ''
+  
+  if (registerForm.value.password !== registerForm.value.confirmPassword) {
+    error.value = '两次输入的密码不一致'
+    loading.value = false
+    return
+  }
+  
   try {
     await userStore.register(registerForm.value.username, registerForm.value.email, registerForm.value.password)
     router.push('/dashboard')
@@ -148,6 +155,15 @@ async function handleRegister() {
               <input v-model="registerForm.password" type="password" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 placeholder="请输入密码"
+                @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
+                @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
+              >
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">确认密码</label>
+              <input v-model="registerForm.confirmPassword" type="password" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="请再次输入密码"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
