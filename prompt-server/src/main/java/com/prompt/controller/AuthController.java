@@ -1,5 +1,6 @@
 package com.prompt.controller;
 
+import com.prompt.dto.ChangePasswordRequest;
 import com.prompt.dto.LoginRequest;
 import com.prompt.dto.RefreshTokenRequest;
 import com.prompt.dto.RegisterRequest;
@@ -51,6 +52,15 @@ public class AuthController {
         String token = authHeader.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
         return Result.success(userService.getCurrentUser(userId));
+    }
+
+    @PutMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                                       @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        userService.changePassword(userId, request);
+        return Result.success();
     }
 }
 

@@ -1,5 +1,6 @@
 package com.prompt.service;
 
+import com.prompt.dto.ChangePasswordRequest;
 import com.prompt.dto.LoginRequest;
 import com.prompt.dto.RegisterRequest;
 import com.prompt.entity.User;
@@ -121,5 +122,30 @@ public class UserService {
         user.setId(userId);
         user.setAvatar(avatarUrl);
         userMapper.updateById(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        // 验证新密码和确认密码是否一致
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException("新密码与确认密码不一致");
+        }
+
+        // 获取当前用户
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // 验证当前密码是否正确
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BusinessException("当前密码错误");
+        }
+
+        // 更新密码
+        User updatedUser = new User();
+        updatedUser.setId(userId);
+        updatedUser.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userMapper.updateById(updatedUser);
     }
 }

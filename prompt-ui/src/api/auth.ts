@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { AuthResponse, User } from '@/types'
+import type { AuthResponse, ChangePasswordRequest, User } from '@/types'
 
 export function login(email: string, password: string, rememberMe?: boolean): Promise<AuthResponse> {
   return request.post('/auth/login', { email, password, rememberMe })
@@ -19,4 +19,8 @@ export function updateUserAvatar(avatarUrl: string): Promise<void> {
 
 export function getCurrentUser(): Promise<User> {
   return request.get('/auth/me')
+}
+
+export function changePassword(data: ChangePasswordRequest): Promise<void> {
+  return request.put('/auth/password', data)
 }

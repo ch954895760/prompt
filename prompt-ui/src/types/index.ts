@@ -105,6 +105,12 @@ export interface RegisterRequest {
   password: string
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthResponse {
   accessToken: string
   refreshToken: string

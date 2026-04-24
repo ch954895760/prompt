@@ -5,11 +5,11 @@ import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import AvatarUpload from '@/components/AvatarUpload.vue'
 import { getSettings, updateSettings } from '@/api/setting'
 import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
-import { updateUserAvatar } from '@/api/auth'
+import { updateUserAvatar, changePassword } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
 import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
-import { User, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot } from 'lucide-vue-next'
+import { User, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
 
 const userStore = useUserStore()
 const setting = ref<UserSetting | null>(null)
@@ -44,6 +44,18 @@ const aiProviderForm = ref({
 })
 const showAiProviderApiKey = ref(false)
 const aiProviderLoading = ref(false)
+
+// Password Change
+const showPasswordModal = ref(false)
+const passwordLoading = ref(false)
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+const passwordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 const providerOptions = [
   { value: 'openai', label: 'OpenAI', icon: '⚡', models: ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
@@ -335,6 +347,67 @@ function showToast(message: string) {
   }, 2500)
 }
 
+// Password Change Functions
+function openPasswordModal() {
+  passwordForm.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+  showCurrentPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
+  showPasswordModal.value = true
+}
+
+function closePasswordModal() {
+  showPasswordModal.value = false
+  passwordForm.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+}
+
+async function handleChangePassword() {
+  // 表单验证
+  if (!passwordForm.value.currentPassword) {
+    showToast('请输入当前密码')
+    return
+  }
+  if (!passwordForm.value.newPassword) {
+    showToast('请输入新密码')
+    return
+  }
+  if (passwordForm.value.newPassword.length < 6) {
+    showToast('新密码长度不能少于6位')
+    return
+  }
+  if (!passwordForm.value.confirmPassword) {
+    showToast('请确认新密码')
+    return
+  }
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    showToast('两次输入的新密码不一致')
+    return
+  }
+
+  passwordLoading.value = true
+  try {
+    await changePassword({
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword,
+      confirmPassword: passwordForm.value.confirmPassword
+    })
+    showToast('密码修改成功')
+    closePasswordModal()
+  } catch (e: any) {
+    showToast(e.message || '密码修改失败')
+  } finally {
+    passwordLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadData()
   loadAiProviders()
@@ -359,7 +432,7 @@ onMounted(() => {
           <div class="flex items-center gap-4 mb-5">
             <AvatarUpload v-model="avatarUrl" :username="form.username" @success="handleAvatarSuccess" />
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">用户名</label>
               <input v-model="form.username" type="text" disabled
@@ -374,6 +447,17 @@ onMounted(() => {
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted);"
               >
             </div>
+          </div>
+          <div class="pt-4 border-t" style="border-color: var(--border-color);">
+            <button @click="openPasswordModal"
+              class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all"
+              style="border-color: var(--border-color); color: var(--text-secondary);"
+              @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+              @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+            >
+              <KeyRound class="w-4 h-4" />
+              修改密码
+            </button>
           </div>
         </div>
 
@@ -631,6 +715,103 @@ onMounted(() => {
             style="background: var(--accent); color: white;"
           >
             {{ aiProviderLoading ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div v-if="showPasswordModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      @click.self="closePasswordModal"
+    >
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"></div>
+
+      <div class="relative w-full max-w-md rounded-2xl p-6 animate-fade-in"
+        style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 24px 80px rgba(0,0,0,0.2);"
+      >
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-semibold text-lg flex items-center gap-2" style="color: var(--text-primary)">
+            <Lock class="w-5 h-5" style="color: var(--accent)" />
+            修改密码
+          </h3>
+          <button @click="closePasswordModal"
+            class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+            style="color: var(--text-muted);"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">当前密码</label>
+            <div class="relative">
+              <input v-model="passwordForm.currentPassword" :type="showCurrentPassword ? 'text' : 'password'"
+                class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="请输入当前密码"
+              >
+              <button @click="showCurrentPassword = !showCurrentPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2"
+                style="color: var(--text-muted);"
+              >
+                <Eye v-if="!showCurrentPassword" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">新密码</label>
+            <div class="relative">
+              <input v-model="passwordForm.newPassword" :type="showNewPassword ? 'text' : 'password'"
+                class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="请输入新密码（至少6位）"
+              >
+              <button @click="showNewPassword = !showNewPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2"
+                style="color: var(--text-muted);"
+              >
+                <Eye v-if="!showNewPassword" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">确认新密码</label>
+            <div class="relative">
+              <input v-model="passwordForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+                class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                placeholder="请再次输入新密码"
+              >
+              <button @click="showConfirmPassword = !showConfirmPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2"
+                style="color: var(--text-muted);"
+              >
+                <Eye v-if="!showConfirmPassword" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button @click="closePasswordModal"
+            class="flex-1 py-2.5 font-medium rounded-xl border transition-all"
+            style="border-color: var(--border-color); color: var(--text-secondary);"
+          >
+            取消
+          </button>
+          <button @click="handleChangePassword" :disabled="passwordLoading"
+            class="flex-1 py-2.5 font-medium rounded-xl transition-all"
+            style="background: var(--accent); color: white;"
+          >
+            {{ passwordLoading ? '修改中...' : '确认修改' }}
           </button>
         </div>
       </div>
