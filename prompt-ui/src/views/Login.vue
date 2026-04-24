@@ -77,12 +77,12 @@ async function handleRegister() {
         <div class="flex gap-2 mb-6 p-1 rounded-xl" style="background: var(--bg-tertiary)">
           <button @click="authMode = 'login'"
             class="flex-1 py-2 text-sm font-medium rounded-lg transition-all"
-            :class="authMode === 'login' ? 'bg-white dark:bg-surface-800 shadow-sm' : ''"
+            :class="authMode === 'login' ? 'bg-surface-800 text-white shadow-sm' : ''"
             :style="authMode === 'login' ? '' : 'color: var(--text-secondary)'"
           >登录</button>
           <button @click="authMode = 'register'"
             class="flex-1 py-2 text-sm font-medium rounded-lg transition-all"
-            :class="authMode === 'register' ? 'bg-white dark:bg-surface-800 shadow-sm' : ''"
+            :class="authMode === 'register' ? 'bg-surface-800 text-white shadow-sm' : ''"
             :style="authMode === 'register' ? '' : 'color: var(--text-secondary)'"
           >注册</button>
         </div>
