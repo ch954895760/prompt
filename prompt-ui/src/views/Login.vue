@@ -93,7 +93,7 @@ async function handleRegister() {
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">邮箱</label>
               <input v-model="loginForm.email" type="email" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="you@example.com"
+                placeholder="请输入邮箱，例如you@example.com"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
@@ -102,7 +102,7 @@ async function handleRegister() {
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">密码</label>
               <input v-model="loginForm.password" type="password" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="••••••••"
+                placeholder="请输入密码"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
@@ -129,7 +129,7 @@ async function handleRegister() {
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">用户名</label>
               <input v-model="registerForm.username" type="text" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="你的名字"
+                placeholder="请输入用户名"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
@@ -138,7 +138,7 @@ async function handleRegister() {
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">邮箱</label>
               <input v-model="registerForm.email" type="email" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="you@example.com"
+                placeholder="请输入邮箱，例如you@example.com"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
@@ -147,7 +147,7 @@ async function handleRegister() {
               <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">密码</label>
               <input v-model="registerForm.password" type="password" required class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="••••••••"
+                placeholder="请输入密码"
                 @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
                 @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
               >
