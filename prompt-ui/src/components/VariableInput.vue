@@ -232,7 +232,7 @@ function handleKeydown(e: KeyboardEvent) {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  background: #1c1917;
+  background: var(--bg-secondary);
 }
 
 .code-editor-container:focus-within {
@@ -277,7 +277,7 @@ function handleKeydown(e: KeyboardEvent) {
   background: transparent !important;
   border: none !important;
   color: transparent;
-  caret-color: #fff;
+  caret-color: var(--text-primary);
   resize: vertical;
 }
 
@@ -319,5 +319,72 @@ textarea::-webkit-scrollbar-thumb,
 textarea::-webkit-scrollbar-thumb:hover,
 .code-highlight-layer::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* 代码高亮样式 - 适配主题 */
+.code-highlight-layer.hljs {
+  color: var(--text-primary);
+  background: transparent !important;
+}
+
+.code-highlight-layer .hljs-keyword,
+.code-highlight-layer .hljs-selector-tag,
+.code-highlight-layer .hljs-subst {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.code-highlight-layer .hljs-string,
+.code-highlight-layer .hljs-attr,
+.code-highlight-layer .hljs-attribute {
+  color: #22c55e;
+}
+
+.code-highlight-layer .hljs-number,
+.code-highlight-layer .hljs-literal {
+  color: #f97316;
+}
+
+.code-highlight-layer .hljs-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.code-highlight-layer .hljs-function,
+.code-highlight-layer .hljs-title {
+  color: #3b82f6;
+}
+
+.code-highlight-layer .hljs-params {
+  color: var(--text-secondary);
+}
+
+.code-highlight-layer .hljs-tag {
+  color: var(--accent);
+}
+
+.code-highlight-layer .hljs-name {
+  color: #ef4444;
+}
+
+/* 深色模式下的代码高亮调整 */
+.dark .code-highlight-layer .hljs-string,
+.dark .code-highlight-layer .hljs-attr,
+.dark .code-highlight-layer .hljs-attribute {
+  color: #4ade80;
+}
+
+.dark .code-highlight-layer .hljs-number,
+.dark .code-highlight-layer .hljs-literal {
+  color: #fb923c;
+}
+
+.dark .code-highlight-layer .hljs-function,
+.dark .code-highlight-layer .hljs-title {
+  color: #60a5fa;
+}
+
+.dark .code-highlight-layer .hljs-name {
+  color: #f87171;
 }
 </style>

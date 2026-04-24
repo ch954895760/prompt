@@ -47,6 +47,10 @@ jwt:
   refresh-token-expiration: 604800000
   remember-me-expiration: 2592000000
 
+file:
+  upload:
+    path: uploads
+
 logging:
   level:
     com.prompt: debug

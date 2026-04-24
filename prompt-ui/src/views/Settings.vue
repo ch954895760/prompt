@@ -2,12 +2,14 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
-import { getSettings, updateSettings, aiTestStream } from '@/api/setting'
+import AvatarUpload from '@/components/AvatarUpload.vue'
+import { getSettings, updateSettings } from '@/api/setting'
 import { exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
+import { updateUserAvatar } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
 import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
-import { User, Cpu, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Sparkles, MessageSquare } from 'lucide-vue-next'
+import { User, Palette, Database, Download, Upload, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot } from 'lucide-vue-next'
 
 const userStore = useUserStore()
 const setting = ref<UserSetting | null>(null)
@@ -15,6 +17,7 @@ const loading = ref(false)
 
 const showApiKey = ref(false)
 const importFile = ref<HTMLInputElement | null>(null)
+const avatarUrl = ref('')
 const form = ref({
   username: '',
   email: '',
@@ -41,13 +44,6 @@ const aiProviderForm = ref({
 })
 const showAiProviderApiKey = ref(false)
 const aiProviderLoading = ref(false)
-
-// AI Test
-const testContent = ref('')
-const testResponse = ref('')
-const isTesting = ref(false)
-const testAbort = ref<(() => void) | null>(null)
-const selectedTestProvider = ref<number | null>(null)
 
 const providerOptions = [
   { value: 'openai', label: 'OpenAI', icon: '⚡', models: ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
@@ -88,6 +84,7 @@ async function loadData() {
     if (userStore.user) {
       form.value.username = userStore.user.username
       form.value.email = userStore.user.email
+      avatarUrl.value = userStore.user.avatar || ''
     }
   } catch (e) {
     console.error('[DEBUG] Failed to load settings:', e)
@@ -109,6 +106,19 @@ watch(() => userStore.theme, (newTheme) => {
 function toggleTheme() {
   userStore.toggleTheme()
   form.value.theme = userStore.theme
+}
+
+async function handleAvatarSuccess(url: string) {
+  avatarUrl.value = url
+  try {
+    await updateUserAvatar(url)
+    if (userStore.user) {
+      userStore.user.avatar = url
+    }
+    showToast('头像更新成功')
+  } catch (e: any) {
+    showToast(e.message || '头像保存失败')
+  }
 }
 
 async function handleSave() {
@@ -312,38 +322,6 @@ function getProviderIcon(providerValue: string) {
   return providerOptions.find(p => p.value === providerValue)?.icon || '🤖'
 }
 
-// AI Test Functions
-async function handleAiTest() {
-  if (!testContent.value.trim()) {
-    showToast('请输入测试内容')
-    return
-  }
-  if (isTesting.value) {
-    testAbort.value?.()
-    return
-  }
-
-  isTesting.value = true
-  testResponse.value = ''
-
-  const abort = aiTestStream(testContent.value, {
-    onChunk: (text) => {
-      testResponse.value += text
-    },
-    onDone: () => {
-      isTesting.value = false
-      testAbort.value = null
-    },
-    onError: (error) => {
-      showToast(error)
-      isTesting.value = false
-      testAbort.value = null
-    },
-  }, selectedTestProvider.value)
-
-  testAbort.value = abort
-}
-
 const toastVisible = ref(false)
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout>
@@ -379,16 +357,7 @@ onMounted(() => {
             个人信息
           </h3>
           <div class="flex items-center gap-4 mb-5">
-            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#fb923c] to-[#ea580c] text-white flex items-center justify-center text-xl font-bold">
-              {{ form.username?.charAt(0)?.toUpperCase() || 'U' }}
-            </div>
-            <div>
-              <button class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-                style="border-color: var(--border-color); color: var(--text-secondary);"
-              >
-                更换头像
-              </button>
-            </div>
+            <AvatarUpload v-model="avatarUrl" :username="form.username" @success="handleAvatarSuccess" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -484,107 +453,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- AI Test -->
-        <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
-            <Sparkles class="w-4 h-4" style="color: var(--accent)" />
-            AI 测试
-          </h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">选择模型</label>
-              <select v-model="selectedTestProvider"
-                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
-                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              >
-                <option :value="null">使用默认配置</option>
-                <option v-for="provider in aiProviders" :key="provider.id" :value="provider.id">
-                  {{ provider.name }}
-                </option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">测试内容</label>
-              <textarea v-model="testContent" rows="3"
-                class="w-full px-4 py-2.5 rounded-xl text-sm resize-none transition-all"
-                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="输入你想测试的提示词..."
-              ></textarea>
-            </div>
-            <button @click="handleAiTest" :disabled="isTesting && !testAbort"
-              class="w-full py-2.5 font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-              :style="isTesting ? 'background: var(--bg-tertiary); color: var(--text-muted);' : 'background: var(--accent); color: white;'"
-            >
-              <span v-if="isTesting" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-              {{ isTesting ? '停止测试' : '开始测试' }}
-            </button>
-            <div v-if="testResponse" class="p-4 rounded-xl text-sm leading-relaxed"
-              style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-            >
-              <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid var(--border-color);">
-                <MessageSquare class="w-4 h-4" style="color: var(--accent);" />
-                <span class="text-xs font-medium" style="color: var(--text-secondary);">AI 回复</span>
-              </div>
-              <div class="whitespace-pre-wrap">{{ testResponse }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Legacy AI Integration (Hidden but kept for backward compatibility) -->
-        <div class="rounded-2xl p-6 opacity-60" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
-            <Cpu class="w-4 h-4" style="color: var(--accent)" />
-            旧版 AI 配置
-            <span class="text-[10px] px-1.5 py-0.5 rounded-full ml-2" style="background: var(--bg-tertiary); color: var(--text-muted);">已弃用</span>
-          </h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">默认模型</label>
-              <select v-model="form.defaultModel"
-                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
-                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              >
-                <option value="">请选择</option>
-                <option value="openai">OpenAI GPT-4</option>
-                <option value="claude">Claude 3.5 Sonnet</option>
-                <option value="wenxin">文心一言 4.0</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">Base URL</label>
-              <input v-model="form.apiBaseUrl" type="text"
-                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
-                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="https://api.openai.com/v1"
-              >
-            </div>
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">API Key</label>
-              <div class="relative">
-                <input v-model="form.apiKey" :type="showApiKey ? 'text' : 'password'"
-                  class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
-                  style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); font-family: monospace;"
-                  placeholder="sk-xxxxxxxxxxxxxxxx"
-                >
-                <button @click="showApiKey = !showApiKey"
-                  class="absolute right-3 top-1/2 -translate-y-1/2"
-                  style="color: var(--text-muted);"
-                >
-                  <Eye v-if="!showApiKey" class="w-4 h-4" />
-                  <EyeOff v-else class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">Model</label>
-              <input v-model="form.model" type="text"
-                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
-                style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="gpt-4, claude-3-5-sonnet 等"
-              >
-            </div>
-          </div>
-        </div>
 
         <!-- Appearance -->
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">

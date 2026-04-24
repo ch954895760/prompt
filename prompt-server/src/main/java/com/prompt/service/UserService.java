@@ -115,4 +115,11 @@ public class UserService {
     public User getCurrentUser(Long userId) {
         return userMapper.selectById(userId);
     }
+
+    public void updateAvatar(Long userId, String avatarUrl) {
+        User user = new User();
+        user.setId(userId);
+        user.setAvatar(avatarUrl);
+        userMapper.updateById(user);
+    }
 }

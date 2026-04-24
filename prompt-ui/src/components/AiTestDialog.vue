@@ -11,7 +11,7 @@ marked.use({
     code({ text, lang }) {
       const language = hljs.getLanguage(lang || '') ? lang : 'plaintext'
       const highlighted = hljs.highlight(text, { language: language || 'plaintext' }).value
-      return `<pre style="margin: 0.75em 0; border-radius: 8px; overflow-x: auto; background: #1c1917;"><code class="hljs language-${language}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
+      return `<pre style="margin: 0.75em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color);"><code class="hljs language-${language}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
     },
     codespan({ text }) {
       return `<code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent);">${text}</code>`
@@ -185,7 +185,7 @@ watch(() => props.modelValue, (newVal) => {
       <div v-if="modelValue" class="fixed inset-0 z-[100] flex items-center justify-center" @click="onMaskClick">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity dialog-backdrop"></div>
 
-        <div class="relative w-full max-w-[700px] mx-4 rounded-2xl flex flex-col dialog-panel"
+        <div class="relative w-full max-w-[1000px] mx-4 rounded-2xl flex flex-col dialog-panel"
           style="background: var(--bg-primary); border: 1px solid var(--border-color); box-shadow: 0 24px 80px rgba(0,0,0,0.25); height: 80vh; max-height: 700px;"
         >
           <div class="flex items-center justify-between px-5 py-4 shrink-0"
@@ -365,5 +365,77 @@ watch(() => props.modelValue, (newVal) => {
 }
 .ai-markdown pre {
   margin: 0.5em 0;
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color);
+}
+.ai-markdown pre code {
+  color: var(--text-primary);
+}
+
+/* 代码高亮颜色 - 使用 CSS 变量 */
+.ai-markdown .hljs {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.ai-markdown .hljs-keyword,
+.ai-markdown .hljs-selector-tag,
+.ai-markdown .hljs-subst {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.ai-markdown .hljs-string,
+.ai-markdown .hljs-attr,
+.ai-markdown .hljs-attribute {
+  color: #22c55e;
+}
+
+.ai-markdown .hljs-number,
+.ai-markdown .hljs-literal {
+  color: #f97316;
+}
+
+.ai-markdown .hljs-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ai-markdown .hljs-function,
+.ai-markdown .hljs-title {
+  color: #3b82f6;
+}
+
+.ai-markdown .hljs-params {
+  color: var(--text-secondary);
+}
+
+.ai-markdown .hljs-tag {
+  color: var(--accent);
+}
+
+.ai-markdown .hljs-name {
+  color: #ef4444;
+}
+
+/* 深色模式下的代码高亮调整 */
+.dark .ai-markdown .hljs-string,
+.dark .ai-markdown .hljs-attr,
+.dark .ai-markdown .hljs-attribute {
+  color: #4ade80;
+}
+
+.dark .ai-markdown .hljs-number,
+.dark .ai-markdown .hljs-literal {
+  color: #fb923c;
+}
+
+.dark .ai-markdown .hljs-function,
+.dark .ai-markdown .hljs-title {
+  color: #60a5fa;
+}
+
+.dark .ai-markdown .hljs-name {
+  color: #f87171;
 }
 </style>

@@ -122,7 +122,16 @@ watch(() => route.query.q, (q) => {
       <!-- User section -->
       <div class="p-4 mx-3 mb-3 rounded-xl" style="background: var(--bg-tertiary)">
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#fb923c] to-[#ea580c] text-white flex items-center justify-center text-sm font-bold">
+          <img
+            v-if="userStore.user?.avatar"
+            :src="`/api${userStore.user.avatar}`"
+            class="w-9 h-9 rounded-full object-cover"
+            alt="avatar"
+          />
+          <div
+            v-else
+            class="w-9 h-9 rounded-full bg-gradient-to-br from-[#fb923c] to-[#ea580c] text-white flex items-center justify-center text-sm font-bold"
+          >
             {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
           </div>
           <div class="flex-1 min-w-0">

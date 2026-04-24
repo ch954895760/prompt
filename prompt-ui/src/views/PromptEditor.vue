@@ -23,7 +23,7 @@ marked.use({
     code({ text, lang }) {
       const language = hljs.getLanguage(lang || '') ? lang : 'plaintext'
       const highlighted = hljs.highlight(text, { language: language || 'plaintext' }).value
-      return `<pre style="margin: 0.75em 0; border-radius: 8px; overflow-x: auto; background: #1c1917;"><code class="hljs language-${language}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
+      return `<pre style="margin: 0.75em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color);"><code class="hljs language-${language}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
     },
     codespan({ text }) {
       return `<code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent);">${text}</code>`
@@ -141,9 +141,9 @@ const previewContent = computed(() => {
       const lang = getVariableLanguage(key) || 'plaintext'
       try {
         const highlighted = hljs.highlight(value, { language: lang }).value
-        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: #1c1917;"><code class="hljs language-${lang}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
+        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color);"><code class="hljs language-${lang}" style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; padding: 12px; display: block;">${highlighted}</code></pre>`
       } catch (e) {
-        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: #1c1917; padding: 12px;"><code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; color: #e7e7e7;">${value.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`
+        formattedValue = `<pre style="margin: 0.5em 0; border-radius: 8px; overflow-x: auto; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px;"><code style="font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.85em; line-height: 1.6; color: var(--text-primary);">${value.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`
       }
     } else if (value.includes('\n')) {
       // 多行文本：将换行符转换为 <br> 标签
@@ -538,7 +538,7 @@ onMounted(() => {
                   复制
                 </button>
               </div>
-              <div class="pt-8 text-base" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || '<span style=\'color: var(--text-muted); font-style: italic;\'>提示词预览将在这里显示...</span>'">
+              <div class="pt-8 text-base preview-content" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || '<span style=\'color: var(--text-muted); font-style: italic;\'>提示词预览将在这里显示...</span>'">
               </div>
             </div>
           </div>
@@ -707,5 +707,167 @@ onMounted(() => {
   max-width: 100%;
   border-radius: 8px;
   margin: 0.5em 0;
+}
+
+/* 代码块样式 - 适配主题 */
+.ai-markdown pre {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color);
+}
+
+.ai-markdown pre code {
+  color: var(--text-primary);
+}
+
+/* 代码高亮颜色 - 使用 CSS 变量 */
+.ai-markdown .hljs {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.ai-markdown .hljs-keyword,
+.ai-markdown .hljs-selector-tag,
+.ai-markdown .hljs-subst {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.ai-markdown .hljs-string,
+.ai-markdown .hljs-attr,
+.ai-markdown .hljs-attribute {
+  color: #22c55e;
+}
+
+.ai-markdown .hljs-number,
+.ai-markdown .hljs-literal {
+  color: #f97316;
+}
+
+.ai-markdown .hljs-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ai-markdown .hljs-function,
+.ai-markdown .hljs-title {
+  color: #3b82f6;
+}
+
+.ai-markdown .hljs-params {
+  color: var(--text-secondary);
+}
+
+.ai-markdown .hljs-tag {
+  color: var(--accent);
+}
+
+.ai-markdown .hljs-name {
+  color: #ef4444;
+}
+
+/* 深色模式下的代码高亮调整 */
+.dark .ai-markdown .hljs-string,
+.dark .ai-markdown .hljs-attr,
+.dark .ai-markdown .hljs-attribute {
+  color: #4ade80;
+}
+
+.dark .ai-markdown .hljs-number,
+.dark .ai-markdown .hljs-literal {
+  color: #fb923c;
+}
+
+.dark .ai-markdown .hljs-function,
+.dark .ai-markdown .hljs-title {
+  color: #60a5fa;
+}
+
+.dark .ai-markdown .hljs-name {
+  color: #f87171;
+}
+
+/* 实时预览区域代码块样式 */
+.preview-content pre {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+  padding: 12px;
+}
+
+.preview-content pre code {
+  font-family: 'JetBrains Mono', Menlo, monospace;
+  font-size: 0.85em;
+  line-height: 1.6;
+  display: block;
+  color: var(--text-primary);
+  background: transparent !important;
+}
+
+.preview-content .hljs {
+  color: var(--text-primary);
+  background: transparent !important;
+}
+
+.preview-content .hljs-keyword,
+.preview-content .hljs-selector-tag,
+.preview-content .hljs-subst {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.preview-content .hljs-string,
+.preview-content .hljs-attr,
+.preview-content .hljs-attribute {
+  color: #22c55e;
+}
+
+.preview-content .hljs-number,
+.preview-content .hljs-literal {
+  color: #f97316;
+}
+
+.preview-content .hljs-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.preview-content .hljs-function,
+.preview-content .hljs-title {
+  color: #3b82f6;
+}
+
+.preview-content .hljs-params {
+  color: var(--text-secondary);
+}
+
+.preview-content .hljs-tag {
+  color: var(--accent);
+}
+
+.preview-content .hljs-name {
+  color: #ef4444;
+}
+
+/* 深色模式下的实时预览代码高亮 */
+.dark .preview-content .hljs-string,
+.dark .preview-content .hljs-attr,
+.dark .preview-content .hljs-attribute {
+  color: #4ade80;
+}
+
+.dark .preview-content .hljs-number,
+.dark .preview-content .hljs-literal {
+  color: #fb923c;
+}
+
+.dark .preview-content .hljs-function,
+.dark .preview-content .hljs-title {
+  color: #60a5fa;
+}
+
+.dark .preview-content .hljs-name {
+  color: #f87171;
 }
 </style>
