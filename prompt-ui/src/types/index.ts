@@ -16,6 +16,7 @@ export interface Prompt {
   categoryName?: string
   categoryColor?: string
   variablesJson?: Record<string, string>
+  tagIds?: number[]
   isPublic: boolean
   usageCount: number
   tags: Tag[]

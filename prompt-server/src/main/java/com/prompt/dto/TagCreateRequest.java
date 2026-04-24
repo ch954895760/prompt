@@ -1,6 +1,6 @@
 package com.prompt.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
@@ -9,3 +9,4 @@ public class TagCreateRequest {
     private String name;
     private String color;
 }
+

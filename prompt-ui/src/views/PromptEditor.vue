@@ -65,7 +65,7 @@ const renderedAiResult = computed(() => {
 
 const extractedVars = computed(() => {
   const vars = [...content.value.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1])
-  return [...new Set(vars)]
+  return [...new Set(vars.filter((v): v is string => !!v))]
 })
 
 const previewContent = computed(() => {
@@ -130,7 +130,7 @@ async function handleSave() {
       description: description.value,
       categoryId: categoryId.value || undefined,
       tagIds: selectedTagIds.value,
-      variablesJson: extractedVars.value.length > 0 ? JSON.stringify(variableValues.value) : undefined,
+      variablesJson: extractedVars.value.length > 0 ? variableValues.value : undefined,
     }
     if (isEdit.value) {
       await updatePrompt(promptId.value, data)
@@ -367,7 +367,7 @@ onMounted(() => {
             <div class="flex items-center justify-between mb-2">
               <label class="block text-xs font-medium" style="color: var(--text-secondary)">提示词内容</label>
               <span class="text-[10px] px-2 py-1 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted)">
-                使用 <code style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{变量名}}</code> 插入变量
+                使用 <code v-pre style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{变量名}}</code> 插入变量
               </span>
             </div>
             <textarea v-model="content"

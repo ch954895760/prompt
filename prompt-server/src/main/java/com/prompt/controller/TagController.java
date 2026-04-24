@@ -4,7 +4,7 @@ import com.prompt.dto.TagCreateRequest;
 import com.prompt.entity.Tag;
 import com.prompt.service.TagService;
 import com.prompt.vo.Result;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -43,3 +43,4 @@ public class TagController {
         return Result.success();
     }
 }
+

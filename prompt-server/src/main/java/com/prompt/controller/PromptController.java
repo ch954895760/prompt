@@ -6,7 +6,7 @@ import com.prompt.entity.Prompt;
 import com.prompt.service.PromptService;
 import com.prompt.util.JwtUtil;
 import com.prompt.vo.Result;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -118,3 +118,4 @@ public class PromptController {
         return Result.success(count);
     }
 }
+

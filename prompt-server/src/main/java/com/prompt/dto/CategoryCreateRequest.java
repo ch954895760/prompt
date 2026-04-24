@@ -1,6 +1,6 @@
 package com.prompt.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
@@ -12,3 +12,4 @@ public class CategoryCreateRequest {
     private String icon;
     private String color;
 }
+

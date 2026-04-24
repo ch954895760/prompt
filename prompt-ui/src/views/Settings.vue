@@ -35,6 +35,7 @@ async function loadData() {
     form.value.defaultModel = s.defaultModel || ''
     form.value.apiBaseUrl = s.apiBaseUrl || ''
     form.value.model = s.model || ''
+    form.value.apiKey = s.apiKeyEncrypted || ''
     if (userStore.user) {
       form.value.username = userStore.user.username
       form.value.email = userStore.user.email
@@ -60,7 +61,7 @@ async function handleSave() {
       theme: form.value.theme,
       defaultModel: form.value.defaultModel,
       apiBaseUrl: form.value.apiBaseUrl,
-      apiKey: form.value.apiKey,
+      apiKeyEncrypted: form.value.apiKey,
       model: form.value.model,
     })
     showToast('设置已保存')

@@ -62,7 +62,7 @@ public class PromptService {
                 .map(Prompt::getCategoryId)
                 .filter(id -> id != null)
                 .distinct()
-                .toList();
+                .collect(Collectors.toList());
         if (!categoryIds.isEmpty()) {
             List<Category> categories = categoryMapper.selectBatchIds(categoryIds);
             Map<Long, String> categoryNameMap = categories.stream()

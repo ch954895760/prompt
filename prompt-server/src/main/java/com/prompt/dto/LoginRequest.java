@@ -1,7 +1,7 @@
 package com.prompt.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
@@ -13,3 +13,4 @@ public class LoginRequest {
     @NotBlank(message = "密码不能为空")
     private String password;
 }
+

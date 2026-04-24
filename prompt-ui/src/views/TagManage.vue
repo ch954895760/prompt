@@ -184,7 +184,7 @@ onMounted(loadData)
               <div v-for="color in colorOptions" :key="color"
                 class="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
                 :class="form.color === color ? 'ring-2 ring-offset-1' : ''"
-                :style="{ background: color, ringColor: 'var(--text-primary)' }"
+                :style="{ background: color }"
                 @click="form.color = color"
               ></div>
             </div>

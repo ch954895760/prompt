@@ -67,7 +67,7 @@ const hasChildren = () => props.category.children && props.category.children.len
         :level="(level || 0) + 1"
         @toggle="emit('toggle', $event)"
         @edit="emit('edit', $event)"
-        @delete="emit('delete', $event, $event)"
+        @delete="(id, name) => emit('delete', id, name)"
         @add-child="emit('addChild', $event)"
       />
     </div>

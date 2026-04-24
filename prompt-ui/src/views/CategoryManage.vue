@@ -49,7 +49,7 @@ function openCreateModal(parentId?: number) {
 function openEditModal(cat: Category) {
   modalMode.value = 'edit'
   editingId.value = cat.id
-  form.value = { name: cat.name, parentId: cat.parentId, color: cat.color, icon: cat.icon || '' }
+  form.value = { name: cat.name, parentId: cat.parentId ?? null, color: cat.color, icon: cat.icon || '' }
   showModal.value = true
 }
 
@@ -59,11 +59,15 @@ async function handleSubmit() {
     return
   }
   try {
+    const data = {
+      ...form.value,
+      parentId: form.value.parentId ?? undefined
+    }
     if (modalMode.value === 'edit' && editingId.value) {
-      await updateCategory(editingId.value, form.value)
+      await updateCategory(editingId.value, data)
       showToast('分类已更新')
     } else {
-      await createCategory(form.value)
+      await createCategory(data)
       showToast('分类已创建')
     }
     showModal.value = false
@@ -217,7 +221,7 @@ onMounted(loadData)
               <div v-for="color in colorOptions" :key="color"
                 class="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
                 :class="form.color === color ? 'ring-2 ring-offset-1' : ''"
-                :style="{ background: color, ringColor: 'var(--text-primary)' }"
+                :style="{ background: color }"
                 @click="form.color = color"
               ></div>
             </div>

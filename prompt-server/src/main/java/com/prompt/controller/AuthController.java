@@ -5,7 +5,7 @@ import com.prompt.dto.RefreshTokenRequest;
 import com.prompt.dto.RegisterRequest;
 import com.prompt.service.UserService;
 import com.prompt.vo.Result;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,3 +33,4 @@ public class AuthController {
         return Result.success(userService.refreshToken(request.getRefreshToken()));
     }
 }
+

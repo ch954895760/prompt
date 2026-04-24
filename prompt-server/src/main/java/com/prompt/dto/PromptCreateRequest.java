@@ -1,6 +1,6 @@
 package com.prompt.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.util.List;
@@ -17,3 +17,4 @@ public class PromptCreateRequest {
     private Boolean isPublic;
     private List<Long> tagIds;
 }
+

@@ -4,7 +4,7 @@ import com.prompt.dto.CategoryCreateRequest;
 import com.prompt.entity.Category;
 import com.prompt.service.CategoryService;
 import com.prompt.vo.Result;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -48,3 +48,4 @@ public class CategoryController {
         return Result.success();
     }
 }
+
