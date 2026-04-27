@@ -37,8 +37,12 @@ export function deletePrompt(id: number): Promise<void> {
   return request.delete(`/prompts/${id}`)
 }
 
-export function usePrompt(id: number): Promise<void> {
-  return request.post(`/prompts/${id}/use`)
+export function usePrompt(id: number, context?: string): Promise<void> {
+  return request.post(`/prompts/${id}/use`, { context })
+}
+
+export function getRecentlyUsedPrompts(limit?: number): Promise<Prompt[]> {
+  return request.get('/prompts/recently-used', { params: { limit } })
 }
 
 export function getPromptHistory(id: number): Promise<{ id: number; promptId: number; content: string; version: number; createdAt: string }[]> {

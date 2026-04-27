@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.prompt.dto.PromptCreateRequest;
 import com.prompt.entity.Prompt;
 import com.prompt.service.PromptService;
+import com.prompt.service.PromptUsageLogService;
 import com.prompt.util.JwtUtil;
 import com.prompt.vo.Result;
 import javax.validation.Valid;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class PromptController {
 
     private final PromptService promptService;
+    private final PromptUsageLogService usageLogService;
     private final JwtUtil jwtUtil;
 
     private Long getCurrentUserId(Authentication authentication) {
@@ -72,9 +74,19 @@ public class PromptController {
     }
 
     @PostMapping("/{id}/use")
-    public Result<Void> use(@PathVariable Long id, Authentication authentication) {
-        promptService.incrementUsage(id, getCurrentUserId(authentication));
+    public Result<Void> use(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body, Authentication authentication) {
+        Long userId = getCurrentUserId(authentication);
+        promptService.incrementUsage(id, userId);
+        String context = body != null ? body.get("context") : null;
+        usageLogService.recordUsage(userId, id, context);
         return Result.success();
+    }
+
+    @GetMapping("/recently-used")
+    public Result<List<Prompt>> getRecentlyUsed(
+            @RequestParam(defaultValue = "10") Integer limit,
+            Authentication authentication) {
+        return Result.success(usageLogService.getRecentlyUsed(getCurrentUserId(authentication), limit));
     }
 
     @GetMapping("/export/json")

@@ -101,3 +101,15 @@ CREATE TABLE IF NOT EXISTS ai_provider (
     INDEX idx_user_id (user_id),
     INDEX idx_user_default (user_id, is_default)
 );
+
+-- 提示词使用记录表
+CREATE TABLE IF NOT EXISTS prompt_usage_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    prompt_id BIGINT NOT NULL,
+    context TEXT COMMENT '使用时的上下文信息',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_time (user_id, created_at),
+    INDEX idx_prompt (prompt_id),
+    INDEX idx_user_prompt (user_id, prompt_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='提示词使用记录表';

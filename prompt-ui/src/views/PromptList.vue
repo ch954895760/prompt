@@ -120,7 +120,7 @@ async function confirmDelete() {
 
 async function copyPrompt(content: string, title: string, id: number) {
   await navigator.clipboard.writeText(content)
-  await usePrompt(id)
+  await usePrompt(id, '从提示词列表复制')
   showToast(`"${title}" 已复制`)
 }
 

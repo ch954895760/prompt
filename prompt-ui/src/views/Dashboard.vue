@@ -3,17 +3,19 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MainLayout from '@/components/MainLayout.vue'
-import { getPromptList, usePrompt } from '@/api/prompt'
+import { getPromptList, usePrompt, getRecentlyUsedPrompts } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
 import type { Prompt, Category } from '@/types'
-import { FileText, FolderOpen, Zap, Copy, ChevronRight } from 'lucide-vue-next'
+import { FileText, FolderOpen, Zap, Copy, ChevronRight, Clock } from 'lucide-vue-next'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
+const recentlyUsedPrompts = ref<Prompt[]>([])
 const loading = ref(false)
+const loadingRecentlyUsed = ref(false)
 
 const stats = computed(() => ({
   total: prompts.value.length,
@@ -36,6 +38,17 @@ async function loadData() {
     console.error('[DEBUG] Failed to load dashboard data:', e)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadRecentlyUsed() {
+  loadingRecentlyUsed.value = true
+  try {
+    recentlyUsedPrompts.value = await getRecentlyUsedPrompts(5)
+  } catch (e) {
+    console.error('[DEBUG] Failed to load recently used prompts:', e)
+  } finally {
+    loadingRecentlyUsed.value = false
   }
 }
 
@@ -62,7 +75,16 @@ function navigate(path: string) {
   router.push(path)
 }
 
-onMounted(loadData)
+async function copyRecentlyUsed(content: string, title: string, id: number) {
+  await navigator.clipboard.writeText(content)
+  await usePrompt(id, '从最近使用复制')
+  showToast(`"${title}" 已复制`)
+}
+
+onMounted(() => {
+  loadData()
+  loadRecentlyUsed()
+})
 </script>
 
 <template>
@@ -126,35 +148,74 @@ onMounted(loadData)
         </div>
       </div>
 
-      <!-- Recent prompts -->
-      <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="font-semibold" style="color: var(--text-primary)">最近编辑</h3>
-          <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">查看全部</a>
-        </div>
-        <div v-if="loading" class="py-8 text-center text-sm" style="color: var(--text-muted)">加载中...</div>
-        <div v-else-if="recentPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">暂无提示词</div>
-        <div v-else class="space-y-3">
-          <div v-for="p in recentPrompts" :key="p.id"
-            class="flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer group"
-            style="border: 1px solid transparent;"
-            @mouseenter="($event.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'"
-            @mouseleave="($event.currentTarget as HTMLElement).style.borderColor = 'transparent'"
-            @click="navigate(`/editor/${p.id}`)"
-          >
-            <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: p.categoryName ? '#ea580c' : '#d6d3d1' }"></div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate transition-colors group-hover:text-[#ea580c] dark:group-hover:text-[#fb923c]" style="color: var(--text-primary)">{{ p.title }}</div>
-              <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · {{ p.updatedAt }}</div>
-            </div>
-            <button @click.stop="copyPrompt(p.content, p.title, p.id)"
-              class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"
-              style="color: var(--text-muted);"
-              @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
-              @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+      <!-- Two column layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recently edited -->
+        <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-semibold" style="color: var(--text-primary)">最近编辑</h3>
+            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">查看全部</a>
+          </div>
+          <div v-if="loading" class="py-8 text-center text-sm" style="color: var(--text-muted)">加载中...</div>
+          <div v-else-if="recentPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">暂无提示词</div>
+          <div v-else class="space-y-3">
+            <div v-for="p in recentPrompts" :key="p.id"
+              class="flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer group"
+              style="border: 1px solid transparent;"
+              @mouseenter="($event.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'"
+              @mouseleave="($event.currentTarget as HTMLElement).style.borderColor = 'transparent'"
+              @click="navigate(`/editor/${p.id}`)"
             >
-              <Copy class="w-3.5 h-3.5" />
-            </button>
+              <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate transition-colors group-hover:opacity-80" :style="{ color: p.categoryColor || 'var(--text-primary)' }">{{ p.title }}</div>
+                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · {{ p.updatedAt }}</div>
+              </div>
+              <button @click.stop="copyPrompt(p.content, p.title, p.id)"
+                class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"
+                style="color: var(--text-muted);"
+                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+              >
+                <Copy class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recently used -->
+        <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-semibold flex items-center gap-2" style="color: var(--text-primary)">
+              <Clock class="w-4 h-4" style="color: var(--accent)" />
+              最近使用
+            </h3>
+            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">查看全部</a>
+          </div>
+          <div v-if="loadingRecentlyUsed" class="py-8 text-center text-sm" style="color: var(--text-muted)">加载中...</div>
+          <div v-else-if="recentlyUsedPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">暂无使用记录</div>
+          <div v-else class="space-y-3">
+            <div v-for="p in recentlyUsedPrompts" :key="p.id"
+              class="flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer group"
+              style="border: 1px solid transparent;"
+              @mouseenter="($event.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'"
+              @mouseleave="($event.currentTarget as HTMLElement).style.borderColor = 'transparent'"
+              @click="navigate(`/editor/${p.id}`)"
+            >
+              <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate transition-colors group-hover:opacity-80" :style="{ color: p.categoryColor || 'var(--text-primary)' }">{{ p.title }}</div>
+                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · 已使用 {{ p.usageCount || 0 }} 次</div>
+              </div>
+              <button @click.stop="copyRecentlyUsed(p.content, p.title, p.id)"
+                class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"
+                style="color: var(--text-muted);"
+                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+              >
+                <Copy class="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
