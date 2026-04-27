@@ -106,10 +106,10 @@ public class PromptOptimizerService {
                 .apiKey(config.apiKey())
                 .build();
 
-        String systemPrompt = buildOptimizePrompt(userPrompt);
+        String prompt = buildOptimizePrompt(userPrompt);
 
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
-                .addSystemMessage(systemPrompt)
+                .addUserMessage(prompt)
                 .model(ChatModel.of(config.model()));
 
         // 某些模型（如 o3-mini）不支持 temperature 参数
