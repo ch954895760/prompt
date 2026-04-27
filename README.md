@@ -2,8 +2,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue-3.4-%234FC08D?logo=vue.js" alt="Vue 3">
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-%236DB33F?logo=springboot" alt="Spring Boot">
-  <img src="https://img.shields.io/badge/Java-17-%23ED8B00?logo=openjdk" alt="Java 17">
+  <img src="https://img.shields.io/badge/Spring%20Boot-2.7.x-%236DB33F?logo=springboot" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Java-1.8-%23ED8B00?logo=openjdk" alt="Java 1.8">
   <img src="https://img.shields.io/badge/TypeScript-5.x-%233178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/MySQL-8.0-%234479A1?logo=mysql" alt="MySQL">
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
@@ -60,7 +60,7 @@
 | 层级 | 技术 |
 |------|------|
 | 前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Tailwind CSS |
-| 后端 | Spring Boot 3.x + Java 17 + MyBatis-Plus |
+| 后端 | Spring Boot 2.7.x + Java 1.8 + MyBatis-Plus |
 | 安全 | Spring Security + JWT |
 | 数据 | MySQL 8.0 + Redis |
 | 文档 | SpringDoc OpenAPI |
@@ -72,7 +72,7 @@
 ### 环境要求
 
 - Node.js >= 18
-- Java 17
+- Java 1.8
 - Maven >= 3.8
 - MySQL 8.0
 - Redis >= 6.0

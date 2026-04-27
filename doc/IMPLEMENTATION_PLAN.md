@@ -26,7 +26,7 @@
 - Element Plus Icons / Lucide（原型图使用 lucide，保持统一）
 
 ### 后端 (prompt-server/)
-- Spring Boot 3.x + Java 17
+- Spring Boot 2.7.x + Java 1.8
 - MyBatis-Plus
 - Spring Security + JWT
 - MySQL 8.0
@@ -193,7 +193,7 @@ CREATE TABLE user_setting (
    - 配置 Axios 实例（baseURL, interceptor）
 
 2. **初始化后端项目**
-   - Spring Initializr 方式: Spring Boot 3.2 + Java 17 + Spring Web + Spring Security + MySQL Driver + Redis
+   - Spring Initializr 方式: Spring Boot 2.7.18 + Java 1.8 + Spring Web + Spring Security + MySQL Driver + Redis
    - pom.xml 添加: mybatis-plus-boot-starter, jjwt, lombok, springdoc-openapi
    - 配置 application.yml（数据库、Redis、JWT）
    - 配置全局异常处理、统一响应封装（Result<T>）

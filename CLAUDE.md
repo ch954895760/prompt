@@ -16,7 +16,7 @@ Prompt Vault 是一款面向多用户的云端同步 Web 应用，支持个人�
 - **图标**: Lucide Vue Next
 
 ### 后端 (prompt-server/)
-- **框架**: Spring Boot 3.x + Java 17
+- **框架**: Spring Boot 2.7.x + Java 1.8
 - **ORM**: MyBatis-Plus
 - **安全**: Spring Security + JWT
 - **数据库**: MySQL 8.0
@@ -63,7 +63,7 @@ prompt/
 ## 开发环境要求
 
 - **Node.js**: >= 18
-- **Java**: 17
+- **Java**: 1.8
 - **Maven**: >= 3.8
 - **MySQL**: 8.0
 - **Redis**: >= 6.0

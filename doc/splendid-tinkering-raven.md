@@ -15,7 +15,7 @@
 - **图标**: Element Plus Icons / Iconify
 
 ### 后端
-- **框架**: Spring Boot 3.x + Java 17
+- **框架**: Spring Boot 2.7.x + Java 1.8
 - **ORM**: MyBatis-Plus（简化CRUD）
 - **安全**: Spring Security + JWT
 - **数据库**: MySQL 8.0
@@ -87,7 +87,7 @@ prompt/
 
 ### 阶段一：基础架构与项目初始化
 1. 初始化 Vue3 + Vite + TypeScript 项目，配置 Element Plus、Tailwind CSS、Pinia
-2. 初始化 Spring Boot 3.x 项目，集成 MyBatis-Plus、Spring Security、JWT、Redis
+2. 初始化 Spring Boot 2.7.x 项目，集成 MyBatis-Plus、Spring Security、JWT、Redis
 3. 配置 Docker Compose（MySQL 8 + Redis + Nginx）
 4. 设计并初始化数据库表结构（Flyway 或手动SQL脚本）
 5. 配置跨域、全局异常处理、统一响应封装
