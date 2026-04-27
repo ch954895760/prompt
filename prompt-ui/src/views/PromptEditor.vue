@@ -552,7 +552,7 @@ onUnmounted(() => {
             </div>
             <textarea v-model="content"
               class="w-full px-4 py-4 rounded-xl transition-all"
-              style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); font-family: 'Crimson Pro', Georgia, serif; font-size: 16px; line-height: 1.7; resize: vertical; min-height: 300px;"
+              style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 16px; line-height: 1.7; resize: vertical; min-height: 300px;"
               placeholder="在这里输入你的提示词模板..."
               @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
               @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
@@ -642,7 +642,7 @@ onUnmounted(() => {
           <div>
             <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">实时预览</label>
             <div class="rounded-2xl p-6 min-h-[400px] relative transition-all"
-              style="background: var(--bg-secondary); border: 1px solid var(--border-color); font-family: 'Crimson Pro', Georgia, serif; line-height: 1.8;"
+              style="background: var(--bg-secondary); border: 1px solid var(--border-color); line-height: 1.8;"
             >
               <div class="absolute top-4 right-4">
                 <button @click="handleCopy"
