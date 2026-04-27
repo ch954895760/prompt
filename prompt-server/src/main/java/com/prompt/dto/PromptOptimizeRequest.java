@@ -10,4 +10,6 @@ public class PromptOptimizeRequest {
     private String promptContent;
 
     private Long providerId;
+
+    private Boolean forceRefresh;
 }

@@ -38,11 +38,17 @@ public class PromptOptimizerService {
 
     public PromptOptimizeResponse optimize(Long userId, PromptOptimizeRequest request) {
         String cacheKey = optimizeCache.generateCacheKey(userId, request.getPromptContent());
-        PromptOptimizeResponse cached = optimizeCache.get(cacheKey);
-        if (cached != null) {
-            cached.setFromCache(true);
-            log.debug("[DEBUG] Returning cached optimization result for user: {}", userId);
-            return cached;
+
+        // 如果不是强制刷新，先检查缓存
+        if (!Boolean.TRUE.equals(request.getForceRefresh())) {
+            PromptOptimizeResponse cached = optimizeCache.get(cacheKey);
+            if (cached != null) {
+                cached.setFromCache(true);
+                log.debug("[DEBUG] Returning cached optimization result for user: {}", userId);
+                return cached;
+            }
+        } else {
+            log.debug("[DEBUG] Force refresh requested, skipping cache for user: {}", userId);
         }
 
         AiConfig config = getAiConfig(userId, request.getProviderId());
@@ -107,11 +113,16 @@ public class PromptOptimizerService {
                 .build();
 
         String prompt = buildOptimizePrompt(userPrompt);
+        String model = config.model();
 
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
-                .addUserMessage(prompt)
-                .model(ChatModel.of(config.model()));
+                .model(ChatModel.of(model));
 
+        if ("MiniMax-M2.7".equals(model)){
+            paramsBuilder.addUserMessage(prompt);
+        }else {
+            paramsBuilder.addSystemMessage(prompt);
+        }
         // 某些模型（如 o3-mini）不支持 temperature 参数
 //        if (!isTemperatureUnsupportedModel(config.model())) {
 //            paramsBuilder.temperature(0.7);
@@ -170,16 +181,7 @@ public class PromptOptimizerService {
 
     private PromptOptimizeResponse parseAnalyzeResult(String result) {
         try {
-            String jsonStr = result.trim();
-            if (jsonStr.startsWith("```json")) {
-                jsonStr = jsonStr.substring(7);
-            } else if (jsonStr.startsWith("```")) {
-                jsonStr = jsonStr.substring(3);
-            }
-            if (jsonStr.endsWith("```")) {
-                jsonStr = jsonStr.substring(0, jsonStr.length() - 3);
-            }
-            jsonStr = jsonStr.trim();
+            String jsonStr = extractJsonFromResponse(result.trim());
 
             JsonNode root = objectMapper.readTree(jsonStr);
 
@@ -246,6 +248,48 @@ public class PromptOptimizerService {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    /**
+     * 从AI响应中提取JSON内容
+     * 处理各种格式：直接JSON、Markdown代码块、带<think>标签的内容等
+     */
+    private String extractJsonFromResponse(String response) {
+        // 1. 如果包含 <think> 标签，先提取 think 外的内容
+        if (response.contains("<think>")) {
+            int thinkEnd = response.lastIndexOf("</think>");
+            if (thinkEnd != -1) {
+                response = response.substring(thinkEnd + 8).trim();
+            }
+        }
+
+        // 2. 查找 ```json 或 ``` 代码块
+        int jsonStart = response.indexOf("```json");
+        if (jsonStart != -1) {
+            jsonStart += 7;
+        } else {
+            jsonStart = response.indexOf("```");
+            if (jsonStart != -1) {
+                jsonStart += 3;
+            }
+        }
+
+        int jsonEnd = response.lastIndexOf("```");
+
+        if (jsonStart != -1 && jsonEnd != -1 && jsonStart < jsonEnd) {
+            return response.substring(jsonStart, jsonEnd).trim();
+        }
+
+        // 3. 查找 JSON 对象的起始位置 { 和结束位置 }
+        int braceStart = response.indexOf("{");
+        int braceEnd = response.lastIndexOf("}");
+
+        if (braceStart != -1 && braceEnd != -1 && braceStart < braceEnd) {
+            return response.substring(braceStart, braceEnd + 1).trim();
+        }
+
+        // 4. 如果都不匹配，返回原始内容（可能直接是JSON）
+        return response;
     }
 
     private static class AiConfig {

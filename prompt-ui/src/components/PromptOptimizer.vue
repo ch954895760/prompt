@@ -105,7 +105,7 @@ function toggleSuggestion(index: number) {
   }
 }
 
-async function handleOptimize() {
+async function handleOptimize(forceRefresh = false) {
   if (!props.currentPrompt.trim()) {
     error.value = '请先输入提示词内容'
     return
@@ -119,7 +119,8 @@ async function handleOptimize() {
   try {
     optimizeResult.value = await optimizePrompt({
       promptContent: props.currentPrompt,
-      providerId: props.providerId ?? undefined
+      providerId: props.providerId ?? undefined,
+      forceRefresh: forceRefresh
     })
   } catch (e: any) {
     error.value = e.message || '优化失败，请重试'
@@ -149,7 +150,7 @@ function onMaskClick(e: MouseEvent) {
 
 watch(() => props.modelValue, (newVal) => {
   if (newVal && props.currentPrompt.trim() && !optimizeResult.value) {
-    handleOptimize()
+    handleOptimize(false) // 打开面板时使用缓存
   }
 })
 </script>
@@ -179,7 +180,7 @@ watch(() => props.modelValue, (newVal) => {
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <button v-if="optimizeResult" @click="handleOptimize"
+              <button v-if="optimizeResult" @click="handleOptimize(true)"
                 class="p-2 rounded-lg transition-colors"
                 style="color: var(--text-muted);"
                 :disabled="loading"
@@ -222,7 +223,7 @@ watch(() => props.modelValue, (newVal) => {
               </div>
               <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">分析失败</p>
               <p class="text-xs text-center max-w-[300px]" style="color: var(--text-muted)">{{ error }}</p>
-              <button @click="handleOptimize"
+              <button @click="handleOptimize(true)"
                 class="mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style="background: var(--accent); color: white;"
               >
@@ -372,7 +373,7 @@ watch(() => props.modelValue, (newVal) => {
               <p class="text-xs text-center max-w-[300px]" style="color: var(--text-muted)">
                 点击下方按钮，AI 将分析您的提示词并提供优化建议
               </p>
-              <button @click="handleOptimize"
+              <button @click="handleOptimize(false)"
                 class="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
                 style="background: var(--accent); color: white;"
               >

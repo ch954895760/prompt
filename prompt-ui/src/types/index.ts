@@ -128,6 +128,7 @@ export interface Result<T> {
 export interface PromptOptimizeRequest {
   promptContent: string
   providerId?: number
+  forceRefresh?: boolean
 }
 
 export interface OptimizeSuggestion {
