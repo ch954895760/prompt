@@ -53,11 +53,12 @@ public class UserSettingController {
     @PostMapping(value = "/ai-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter aiTest(@RequestBody AiTestRequest request, Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
-        
+
         String baseUrl;
         String apiKey;
         String model;
-        
+        boolean isSystemDefault;
+
         if (request.getProviderId() != null) {
             AiProvider provider = aiProviderService.getEntityById(request.getProviderId(), userId);
             if (provider == null) {
@@ -65,30 +66,60 @@ public class UserSettingController {
             }
             baseUrl = provider.getApiBaseUrl();
             model = provider.getModel();
+            // 检查是否为系统默认模型（ID为负数表示系统默认）
+            isSystemDefault = provider.getId() != null && provider.getId() < 0;
             try {
-                apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+                if (isSystemDefault) {
+                    // 系统默认模型的API Key是明文存储的，不需要解密
+                    apiKey = provider.getApiKeyEncrypted();
+                } else {
+                    // 用户配置的模型需要解密
+                    apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+                }
             } catch (Exception e) {
                 log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
                 throw new BusinessException("API Key 解密失败，请重新配置");
             }
         } else {
-            UserSetting setting = userSettingService.getByUserId(userId);
-            if (setting.getApiBaseUrl() == null || setting.getApiBaseUrl().isEmpty()) {
-                throw new BusinessException("AI 测试功能需要配置 base_url。请在设置中配置后使用。");
-            }
-            if (setting.getApiKeyEncrypted() == null || setting.getApiKeyEncrypted().isEmpty()) {
-                throw new BusinessException("AI 测试功能需要配置 api_key。请在设置中配置后使用。");
-            }
-            baseUrl = setting.getApiBaseUrl();
-            model = setting.getModel();
-            if (model == null || model.isEmpty()) {
-                model = "gpt-4.1-mini";
-            }
-            try {
-                apiKey = aesUtil.decrypt(setting.getApiKeyEncrypted());
-            } catch (Exception e) {
-                log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
-                throw new BusinessException("API Key 解密失败，请重新配置");
+            // 优先尝试获取用户配置的默认AI提供商
+            AiProvider provider = aiProviderService.getDefaultByUserId(userId);
+            if (provider != null) {
+                baseUrl = provider.getApiBaseUrl();
+                model = provider.getModel();
+                // 检查是否为系统默认模型（ID为负数表示系统默认）
+                isSystemDefault = provider.getId() != null && provider.getId() < 0;
+                try {
+                    if (isSystemDefault) {
+                        // 系统默认模型的API Key是明文存储的，不需要解密
+                        apiKey = provider.getApiKeyEncrypted();
+                    } else {
+                        // 用户配置的模型需要解密
+                        apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+                    }
+                } catch (Exception e) {
+                    log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
+                    throw new BusinessException("API Key 解密失败，请重新配置");
+                }
+            } else {
+                // 如果没有配置AI提供商，尝试使用用户设置
+                UserSetting setting = userSettingService.getByUserId(userId);
+                if (setting.getApiBaseUrl() == null || setting.getApiBaseUrl().isEmpty()) {
+                    throw new BusinessException("AI 测试功能需要配置 base_url。请在设置中配置后使用。");
+                }
+                if (setting.getApiKeyEncrypted() == null || setting.getApiKeyEncrypted().isEmpty()) {
+                    throw new BusinessException("AI 测试功能需要配置 api_key。请在设置中配置后使用。");
+                }
+                baseUrl = setting.getApiBaseUrl();
+                model = setting.getModel();
+                if (model == null || model.isEmpty()) {
+                    model = "gpt-4.1-mini";
+                }
+                try {
+                    apiKey = aesUtil.decrypt(setting.getApiKeyEncrypted());
+                } catch (Exception e) {
+                    log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
+                    throw new BusinessException("API Key 解密失败，请重新配置");
+                }
             }
         }
 

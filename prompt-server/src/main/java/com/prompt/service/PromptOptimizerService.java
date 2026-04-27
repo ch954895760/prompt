@@ -92,8 +92,17 @@ public class PromptOptimizerService {
             throw new BusinessException("AI提供商未配置 api_key");
         }
 
+        // 检查是否为系统默认模型（ID为负数表示系统默认）
+        boolean isSystemDefault = provider.getId() != null && provider.getId() < 0;
+
         try {
-            apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+            if (isSystemDefault) {
+                // 系统默认模型的API Key是明文存储的，不需要解密
+                apiKey = provider.getApiKeyEncrypted();
+            } else {
+                // 用户配置的模型需要解密
+                apiKey = aesUtil.decrypt(provider.getApiKeyEncrypted());
+            }
         } catch (Exception e) {
             log.error("[DEBUG] Failed to decrypt API key: {}", e.getMessage());
             throw new BusinessException("API Key 解密失败，请重新配置");

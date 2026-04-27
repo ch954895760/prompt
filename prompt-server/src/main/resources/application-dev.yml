@@ -51,6 +51,13 @@ file:
   upload:
     path: uploads
 
+ai:
+  default:
+    enabled: true
+    base-url: https://api.minimaxi.com/v1
+    api-key: sk-cp-MERnYLMHI4DudDKpjHiFoFACHTH_ceK43p5UAgF0Iunf9w7pkyreC01U1lHwUR4ryOrobUnb1RrDeXzBuej7uiuENZXDK4KsAG7UDcuKVFs0pujQPAW3JDA
+    model: MiniMax-M2.7
+
 logging:
   level:
     com.prompt: debug

@@ -10,6 +10,7 @@ import com.prompt.vo.AiProviderVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,18 @@ public class AiProviderService {
 
     private final AiProviderMapper aiProviderMapper;
     private final AesUtil aesUtil;
+
+    @Value("${ai.default.enabled:false}")
+    private Boolean defaultAiEnabled;
+
+    @Value("${ai.default.base-url:}")
+    private String defaultBaseUrl;
+
+    @Value("${ai.default.api-key:}")
+    private String defaultApiKey;
+
+    @Value("${ai.default.model:}")
+    private String defaultModel;
 
     public List<AiProviderVo> listByUserId(Long userId) {
         List<AiProvider> providers = aiProviderMapper.selectByUserId(userId);
@@ -53,7 +66,49 @@ public class AiProviderService {
                 provider = providers.get(0);
             }
         }
+        // 如果用户没有配置模型，且启用了默认模型，则返回默认模型
+        if (provider == null && Boolean.TRUE.equals(defaultAiEnabled)) {
+            provider = createDefaultProvider();
+        }
         return provider;
+    }
+
+    /**
+     * 获取默认的系统AI配置（不与任何用户关联）
+     * 当用户查询不到自己的模型时，可以使用该默认模型
+     */
+    public AiProvider getSystemDefaultProvider() {
+        if (Boolean.TRUE.equals(defaultAiEnabled)) {
+            return createDefaultProvider();
+        }
+        return null;
+    }
+
+    /**
+     * 创建默认的AI提供商实体
+     */
+    private AiProvider createDefaultProvider() {
+        AiProvider provider = new AiProvider();
+        provider.setId(-1L); // 使用负数ID标识系统默认模型
+        provider.setUserId(-1L); // 不与任何用户关联
+        provider.setName("系统默认模型");
+        provider.setProvider("default");
+        provider.setApiBaseUrl(defaultBaseUrl);
+        provider.setApiKeyEncrypted(defaultApiKey);
+        provider.setModel(defaultModel);
+        provider.setIsDefault(true);
+        provider.setSortOrder(0);
+        return provider;
+    }
+
+    /**
+     * 检查是否配置了系统默认模型
+     */
+    public boolean hasSystemDefaultProvider() {
+        return Boolean.TRUE.equals(defaultAiEnabled) 
+               && defaultBaseUrl != null && !defaultBaseUrl.isEmpty()
+               && defaultApiKey != null && !defaultApiKey.isEmpty()
+               && defaultModel != null && !defaultModel.isEmpty();
     }
 
     @Transactional
