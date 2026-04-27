@@ -24,3 +24,6 @@ temp/
 .env.local
 .claude/
 .trae/
+
+# Uploads
+prompt-server/uploads/avatars/
