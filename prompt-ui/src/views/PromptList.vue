@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
-import { getCategoryList } from '@/api/category'
+import { getCategoryTree } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
 import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
+const categoryTree = ref<Category[]>([])
 const tags = ref<Tag[]>([])
 const loading = ref(false)
 const total = ref(0)
@@ -24,23 +26,73 @@ const selectedCategory = ref<number | null>(null)
 const selectedTag = ref<number | null>(null)
 const sortBy = ref('updatedAt')
 const searchKeyword = ref('')
+const showCategoryDropdown = ref(false)
+const categoryDropdownRef = ref<HTMLElement | null>(null)
 
 async function loadData() {
   loading.value = true
   try {
-    const [pRes, cList, tList] = await Promise.all([
+    const [pRes, cTree, tList] = await Promise.all([
       getPrompts({ current: currentPage.value, size: pageSize.value, categoryId: selectedCategory.value || undefined, tagId: selectedTag.value || undefined, keyword: searchKeyword.value || undefined }),
-      getCategoryList(),
+      getCategoryTree(),
       getTags(),
     ])
     prompts.value = pRes.records
     total.value = pRes.total
-    categories.value = cList
+    categoryTree.value = cTree
+    categories.value = flattenCategories(cTree)
     tags.value = tList
   } catch (e) {
     console.error('[DEBUG] Failed to load prompts:', e)
   } finally {
     loading.value = false
+  }
+}
+
+// 将树形分类扁平化为列表
+function flattenCategories(cats: Category[]): Category[] {
+  const result: Category[] = []
+  for (const cat of cats) {
+    result.push(cat)
+    if (cat.children && cat.children.length > 0) {
+      result.push(...flattenCategories(cat.children))
+    }
+  }
+  return result
+}
+
+// 获取分类的完整路径名称
+function getCategoryPathName(catId: number | null): string {
+  if (!catId) return '所有分类'
+  const cat = categories.value.find(c => c.id === catId)
+  if (!cat) return '所有分类'
+
+  const path: string[] = [cat.name]
+  let current = cat
+  while (current.parentId) {
+    const parent = categories.value.find(c => c.id === current.parentId)
+    if (parent) {
+      path.unshift(parent.name)
+      current = parent
+    } else {
+      break
+    }
+  }
+  return path.join(' / ')
+}
+
+// 选择分类
+function selectCategory(id: number | null) {
+  selectedCategory.value = id
+  showCategoryDropdown.value = false
+  currentPage.value = 1
+  loadData()
+}
+
+// 点击外部关闭下拉框
+function handleClickOutside(event: MouseEvent) {
+  if (categoryDropdownRef.value && !categoryDropdownRef.value.contains(event.target as Node)) {
+    showCategoryDropdown.value = false
   }
 }
 
@@ -165,7 +217,14 @@ async function handleImportFile(event: Event) {
   }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
@@ -215,13 +274,44 @@ onMounted(loadData)
       <div class="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-xl"
         style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
       >
-        <select v-model="selectedCategory" @change="loadData()"
-          class="px-3 py-2 rounded-lg text-sm min-w-[140px] transition-all"
-          style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-        >
-          <option :value="null">所有分类</option>
-          <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
+        <div class="relative" ref="categoryDropdownRef">
+          <button
+            @click.stop="showCategoryDropdown = !showCategoryDropdown"
+            class="px-3 py-2 rounded-lg text-sm min-w-[160px] transition-all text-left flex items-center justify-between"
+            style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
+            :style="showCategoryDropdown ? 'border-color: var(--accent)' : ''"
+          >
+            <span class="truncate">{{ getCategoryPathName(selectedCategory) }}</span>
+            <svg class="w-4 h-4 transition-transform flex-shrink-0 ml-2" :class="showCategoryDropdown ? 'rotate-180' : ''" style="color: var(--text-muted)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- 树形分类下拉框 -->
+          <div v-if="showCategoryDropdown"
+            class="absolute z-50 w-[240px] mt-1 rounded-xl overflow-hidden shadow-lg"
+            style="background: var(--bg-secondary); border: 1px solid var(--border-color); max-height: 320px; overflow-y: auto;"
+          >
+            <!-- 所有分类选项 -->
+            <div
+              @click="selectCategory(null)"
+              class="px-4 py-2.5 cursor-pointer transition-colors flex items-center gap-2"
+              :style="selectedCategory === null ? 'background: var(--accent-soft); color: var(--accent);' : 'color: var(--text-primary);'"
+              @mouseenter="($event.currentTarget as HTMLElement).style.background = selectedCategory === null ? 'var(--accent-soft)' : 'var(--bg-tertiary)'"
+              @mouseleave="($event.currentTarget as HTMLElement).style.background = selectedCategory === null ? 'var(--accent-soft)' : 'transparent'"
+            >
+              <span class="text-sm">所有分类</span>
+            </div>
+
+            <!-- 树形分类列表 -->
+            <CategoryTreeSelect
+              v-for="cat in categoryTree" :key="cat.id"
+              :category="cat"
+              :selected-id="selectedCategory"
+              @select="selectCategory"
+            />
+          </div>
+        </div>
 
         <div class="flex items-center gap-2 flex-wrap">
           <button v-for="t in tags.slice(0, 6)" :key="t.id"

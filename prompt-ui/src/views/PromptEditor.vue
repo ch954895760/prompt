@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
-import { getCategoryList } from '@/api/category'
+import { getCategoryTree } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
 import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import VariableInput from '@/components/VariableInput.vue'
 import AiTestDialog from '@/components/AiTestDialog.vue'
+import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
@@ -45,7 +46,10 @@ const newTagInput = ref('')
 const tagInputFocused = ref(false)
 
 const categories = ref<Category[]>([])
+const categoryTree = ref<Category[]>([])
 const tags = ref<Tag[]>([])
+const showCategoryDropdown = ref(false)
+const categoryDropdownRef = ref<HTMLElement | null>(null)
 const variableValues = ref<Record<string, string>>({})
 const aiResult = ref('')
 const showAiResult = ref(false)
@@ -198,12 +202,14 @@ watch(extractedVars, (vars) => {
 })
 
 async function loadData() {
-  const [cList, tList, providers] = await Promise.all([
-    getCategoryList(),
+  const [cTree, tList, providers] = await Promise.all([
+    getCategoryTree(),
     getTags(),
     getAiProviders(),
   ])
-  categories.value = cList
+  categoryTree.value = cTree
+  // 扁平化分类列表用于显示
+  categories.value = flattenCategories(cTree)
   tags.value = tList
   aiProviders.value = providers
   // Set default provider
@@ -211,7 +217,52 @@ async function loadData() {
   if (defaultProvider) {
     selectedAiProvider.value = defaultProvider.id
   } else if (providers.length > 0) {
-    selectedAiProvider.value = providers[0].id
+    selectedAiProvider.value = providers[0]!.id
+  }
+}
+
+// 将树形分类扁平化为列表
+function flattenCategories(cats: Category[]): Category[] {
+  const result: Category[] = []
+  for (const cat of cats) {
+    result.push(cat)
+    if (cat.children && cat.children.length > 0) {
+      result.push(...flattenCategories(cat.children))
+    }
+  }
+  return result
+}
+
+// 获取分类的完整路径名称
+function getCategoryPathName(catId: number | null): string {
+  if (!catId) return '未分类'
+  const cat = categories.value.find(c => c.id === catId)
+  if (!cat) return '未分类'
+
+  const path: string[] = [cat.name]
+  let current = cat
+  while (current.parentId) {
+    const parent = categories.value.find(c => c.id === current.parentId)
+    if (parent) {
+      path.unshift(parent.name)
+      current = parent
+    } else {
+      break
+    }
+  }
+  return path.join(' / ')
+}
+
+// 选择分类
+function selectCategory(id: number | null) {
+  categoryId.value = id
+  showCategoryDropdown.value = false
+}
+
+// 点击外部关闭下拉框
+function handleClickOutside(event: MouseEvent) {
+  if (categoryDropdownRef.value && !categoryDropdownRef.value.contains(event.target as Node)) {
+    showCategoryDropdown.value = false
   }
 }
 
@@ -374,6 +425,11 @@ onMounted(() => {
   loadData()
   loadPrompt()
   loadHistory()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -422,15 +478,44 @@ onMounted(() => {
           </div>
 
           <div class="flex gap-4">
-            <div class="flex-1">
+            <div class="flex-1 relative" ref="categoryDropdownRef">
               <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">分类</label>
-              <select v-model="categoryId"
-                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
+              <button
+                @click.stop="showCategoryDropdown = !showCategoryDropdown"
+                class="w-full px-4 py-2.5 rounded-xl text-sm transition-all text-left flex items-center justify-between"
                 style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                :style="showCategoryDropdown ? 'border-color: var(--accent)' : ''"
               >
-                <option :value="null">未分类</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
+                <span class="truncate">{{ getCategoryPathName(categoryId) }}</span>
+                <svg class="w-4 h-4 transition-transform flex-shrink-0" :class="showCategoryDropdown ? 'rotate-180' : ''" style="color: var(--text-muted)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <!-- 树形分类下拉框 -->
+              <div v-if="showCategoryDropdown"
+                class="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-lg"
+                style="background: var(--bg-secondary); border: 1px solid var(--border-color); max-height: 320px; overflow-y: auto;"
+              >
+                <!-- 未分类选项 -->
+                <div
+                  @click="selectCategory(null)"
+                  class="px-4 py-2.5 cursor-pointer transition-colors flex items-center gap-2"
+                  :style="categoryId === null ? 'background: var(--accent-soft); color: var(--accent);' : 'color: var(--text-primary);'"
+                  @mouseenter="($event.currentTarget as HTMLElement).style.background = categoryId === null ? 'var(--accent-soft)' : 'var(--bg-tertiary)'"
+                  @mouseleave="($event.currentTarget as HTMLElement).style.background = categoryId === null ? 'var(--accent-soft)' : 'transparent'"
+                >
+                  <span class="text-sm">未分类</span>
+                </div>
+
+                <!-- 树形分类列表 -->
+                <CategoryTreeSelect
+                  v-for="cat in categoryTree" :key="cat.id"
+                  :category="cat"
+                  :selected-id="categoryId"
+                  @select="selectCategory"
+                />
+              </div>
             </div>
             <div class="flex-1">
               <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">标签</label>

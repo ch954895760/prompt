@@ -70,7 +70,7 @@ const currentProvider = computed(() => {
   return providerOptions.find(p => p.value === aiProviderForm.value.provider)
 })
 
-const defaultBaseUrls: Record<string, string> = {
+const defaultBaseUrls = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com',
   google: 'https://generativelanguage.googleapis.com',
@@ -78,7 +78,7 @@ const defaultBaseUrls: Record<string, string> = {
   qwen: 'https://dashscope.aliyuncs.com/api/v1',
   wenxin: 'https://aip.baidubce.com',
   custom: '',
-}
+} as const
 
 async function loadData() {
   try {
@@ -181,7 +181,7 @@ function openEditAiProvider(provider: AiProvider) {
 
 function onProviderChange() {
   const provider = aiProviderForm.value.provider
-  aiProviderForm.value.apiBaseUrl = defaultBaseUrls[provider] || ''
+  aiProviderForm.value.apiBaseUrl = (defaultBaseUrls as Record<string, string>)[provider] || ''
   const models = providerOptions.find(p => p.value === provider)?.models || []
   aiProviderForm.value.model = models[0] || ''
 }
