@@ -124,3 +124,24 @@ export interface Result<T> {
   data: T
   timestamp: number
 }
+
+export interface PromptOptimizeRequest {
+  promptContent: string
+  providerId?: number
+}
+
+export interface OptimizeSuggestion {
+  type: 'structure' | 'clarity' | 'example'
+  title: string
+  description: string
+  priority: 'high' | 'medium' | 'low'
+}
+
+export interface PromptOptimizeResponse {
+  score: number
+  analysis: string
+  suggestions: OptimizeSuggestion[]
+  optimizedPrompt: string
+  originalPrompt: string
+  fromCache?: boolean
+}

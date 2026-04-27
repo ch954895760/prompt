@@ -6,11 +6,12 @@ import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
-import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square } from 'lucide-vue-next'
+import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square, Sparkles } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import VariableInput from '@/components/VariableInput.vue'
 import AiTestDialog from '@/components/AiTestDialog.vue'
 import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
+import PromptOptimizer from '@/components/PromptOptimizer.vue'
 import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
@@ -60,6 +61,7 @@ const aiContentRef = ref<HTMLDivElement | null>(null)
 const aiProviders = ref<AiProvider[]>([])
 const selectedAiProvider = ref<number | null>(null)
 const showAiTestDialog = ref(false)
+const showOptimizer = ref(false)
 
 function scrollAiToBottom() {
   nextTick(() => {
@@ -546,9 +548,18 @@ onUnmounted(() => {
           <div>
             <div class="flex items-center justify-between mb-2">
               <label class="block text-xs font-medium" style="color: var(--text-secondary)">提示词内容</label>
-              <span class="text-[10px] px-2 py-1 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted)">
-                使用 <code v-pre style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{变量名}}</code> 插入变量
-              </span>
+              <div class="flex items-center gap-2">
+                <button @click="showOptimizer = true"
+                  class="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all hover:opacity-80"
+                  style="background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(234, 88, 12, 0.15) 100%); color: var(--accent); border: 1px solid var(--accent);"
+                >
+                  <Sparkles class="w-3 h-3" />
+                  AI优化
+                </button>
+                <span class="text-[10px] px-2 py-1 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted)">
+                  使用 <code v-pre style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{变量名}}</code> 插入变量
+                </span>
+              </div>
             </div>
             <textarea v-model="content"
               class="w-full px-4 py-4 rounded-xl transition-all"
@@ -717,6 +728,13 @@ onUnmounted(() => {
       v-model="showAiTestDialog"
       :initial-prompt="processedPrompt"
       :provider-id="selectedAiProvider"
+    />
+
+    <!-- Prompt Optimizer -->
+    <PromptOptimizer
+      v-model="showOptimizer"
+      :current-prompt="content"
+      @apply="(optimized) => content = optimized"
     />
 
     <!-- Toast -->
