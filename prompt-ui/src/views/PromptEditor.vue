@@ -6,7 +6,7 @@ import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
-import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square, Sparkles } from 'lucide-vue-next'
+import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square, Sparkles, Eye } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import VariableInput from '@/components/VariableInput.vue'
 import AiTestDialog from '@/components/AiTestDialog.vue'
@@ -396,6 +396,15 @@ function handleRollback(version: number) {
   rollbackDialogVisible.value = true
 }
 
+// 查看历史版本内容
+const viewHistoryDialogVisible = ref(false)
+const viewingHistory = ref<{ id: number; promptId: number; content: string; version: number; createdAt: string } | null>(null)
+
+function handleViewHistory(history: { id: number; promptId: number; content: string; version: number; createdAt: string }) {
+  viewingHistory.value = history
+  viewHistoryDialogVisible.value = true
+}
+
 async function confirmRollback() {
   if (!rollbackVersion.value) return
   try {
@@ -634,14 +643,24 @@ onUnmounted(() => {
                   <span class="font-mono font-semibold px-2 py-0.5 rounded-md" style="background: var(--accent-soft); color: var(--accent);">v{{ h.version }}</span>
                   <span style="color: var(--text-secondary)">{{ new Date(h.createdAt).toLocaleString() }}</span>
                 </div>
-                <button @click="handleRollback(h.version)"
-                  class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-                  style="color: var(--accent);"
-                  title="回滚到此版本"
-                >
-                  <RotateCcw class="w-3 h-3" />
-                  回滚
-                </button>
+                <div class="flex items-center gap-1">
+                  <button @click="handleViewHistory(h)"
+                    class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+                    style="color: var(--text-secondary);"
+                    title="查看内容"
+                  >
+                    <Eye class="w-3 h-3" />
+                    查看
+                  </button>
+                  <button @click="handleRollback(h.version)"
+                    class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+                    style="color: var(--accent);"
+                    title="回滚到此版本"
+                  >
+                    <RotateCcw class="w-3 h-3" />
+                    回滚
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -722,6 +741,42 @@ onUnmounted(() => {
       confirm-text="回滚"
       @confirm="confirmRollback"
     />
+
+    <!-- View History Content Dialog -->
+    <div v-if="viewHistoryDialogVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.5);" @click.self="viewHistoryDialogVisible = false">
+      <div class="rounded-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid var(--border-color);">
+          <div class="flex items-center gap-3">
+            <History class="w-5 h-5" style="color: var(--accent)" />
+            <h3 class="text-base font-semibold" style="color: var(--text-primary)">
+              版本 v{{ viewingHistory?.version }} 内容
+            </h3>
+            <span class="text-xs px-2 py-0.5 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted);">
+              {{ viewingHistory ? new Date(viewingHistory.createdAt).toLocaleString() : '' }}
+            </span>
+          </div>
+          <button @click="viewHistoryDialogVisible = false" class="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]" style="color: var(--text-muted);">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        <!-- Content -->
+        <div class="p-6 overflow-y-auto flex-1">
+          <div class="rounded-xl p-4 text-sm" style="background: var(--bg-primary); border: 1px solid var(--border-color); white-space: pre-wrap; color: var(--text-primary); line-height: 1.7; min-height: 200px;">
+            {{ viewingHistory?.content }}
+          </div>
+        </div>
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 px-6 py-4" style="border-top: 1px solid var(--border-color);">
+          <button @click="viewHistoryDialogVisible = false" class="px-4 py-2 text-sm font-medium rounded-xl transition-colors" style="background: var(--bg-tertiary); color: var(--text-secondary);">
+            关闭
+          </button>
+          <button v-if="viewingHistory" @click="() => { viewHistoryDialogVisible = false; handleRollback(viewingHistory!.version); }" class="px-4 py-2 text-sm font-medium rounded-xl transition-colors" style="background: var(--accent); color: white;">
+            回滚到此版本
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- AI Test Dialog -->
     <AiTestDialog
