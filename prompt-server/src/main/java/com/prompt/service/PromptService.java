@@ -37,7 +37,7 @@ public class PromptService {
     private final CategoryMapper categoryMapper;
     private final ObjectMapper objectMapper;
 
-    public Page<Prompt> page(Long userId, Long categoryId, Long tagId, String keyword, Page<Prompt> page) {
+    public Page<Prompt> page(Long userId, Long categoryId, Long tagId, String keyword, String sortBy, Page<Prompt> page) {
         LambdaQueryWrapper<Prompt> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Prompt::getUserId, userId);
         if (categoryId != null) {
@@ -55,7 +55,19 @@ public class PromptService {
                     .or()
                     .like(Prompt::getContent, keyword));
         }
-        wrapper.orderByDesc(Prompt::getUpdatedAt);
+        // 根据 sortBy 参数进行排序
+        switch (sortBy) {
+            case "usageCount":
+                wrapper.orderByDesc(Prompt::getUsageCount);
+                break;
+            case "title":
+                wrapper.orderByAsc(Prompt::getTitle);
+                break;
+            case "updatedAt":
+            default:
+                wrapper.orderByDesc(Prompt::getUpdatedAt);
+                break;
+        }
         Page<Prompt> result = promptMapper.selectPage(page, wrapper);
 
         List<Long> categoryIds = result.getRecords().stream()

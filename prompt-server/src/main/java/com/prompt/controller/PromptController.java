@@ -39,9 +39,10 @@ public class PromptController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
             Authentication authentication) {
         Page<Prompt> page = new Page<>(current, size);
-        return Result.success(promptService.page(getCurrentUserId(authentication), categoryId, tagId, keyword, page));
+        return Result.success(promptService.page(getCurrentUserId(authentication), categoryId, tagId, keyword, sortBy, page));
     }
 
     @GetMapping("/list")

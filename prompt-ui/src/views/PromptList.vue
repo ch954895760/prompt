@@ -33,7 +33,7 @@ async function loadData() {
   loading.value = true
   try {
     const [pRes, cTree, tList] = await Promise.all([
-      getPrompts({ current: currentPage.value, size: pageSize.value, categoryId: selectedCategory.value || undefined, tagId: selectedTag.value || undefined, keyword: searchKeyword.value || undefined }),
+      getPrompts({ current: currentPage.value, size: pageSize.value, categoryId: selectedCategory.value || undefined, tagId: selectedTag.value || undefined, keyword: searchKeyword.value || undefined, sortBy: sortBy.value }),
       getCategoryTree(),
       getTags(),
     ])
