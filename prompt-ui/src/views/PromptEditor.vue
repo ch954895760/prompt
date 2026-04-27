@@ -734,6 +734,7 @@ onUnmounted(() => {
     <PromptOptimizer
       v-model="showOptimizer"
       :current-prompt="content"
+      :provider-id="selectedAiProvider"
       @apply="(optimized) => content = optimized"
     />
 

@@ -7,6 +7,7 @@ import { optimizePrompt } from '@/api/promptOptimizer'
 const props = defineProps<{
   modelValue: boolean
   currentPrompt: string
+  providerId?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -117,7 +118,8 @@ async function handleOptimize() {
 
   try {
     optimizeResult.value = await optimizePrompt({
-      promptContent: props.currentPrompt
+      promptContent: props.currentPrompt,
+      providerId: props.providerId ?? undefined
     })
   } catch (e: any) {
     error.value = e.message || '优化失败，请重试'
