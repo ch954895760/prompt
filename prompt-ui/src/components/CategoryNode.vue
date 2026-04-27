@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { Category } from '@/types'
-import { ChevronRight, Pencil, Trash2, Plus } from 'lucide-vue-next'
+import { ChevronRight, Pencil, Trash2, Plus, GripVertical } from 'lucide-vue-next'
+import { ref } from 'vue'
 
 const props = defineProps<{
   category: Category
   expandedIds: Set<number>
   level?: number
+  draggable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -13,19 +15,73 @@ const emit = defineEmits<{
   edit: [category: Category]
   delete: [id: number, name: string]
   addChild: [parentId: number]
+  dragStart: [event: DragEvent, category: Category]
+  dragOver: [event: DragEvent, category: Category]
+  dragLeave: [event: DragEvent, category: Category]
+  drop: [event: DragEvent, category: Category]
+  dragEnd: [event: DragEvent]
 }>()
 
 const isExpanded = () => props.expandedIds.has(props.category.id)
 const hasChildren = () => props.category.children && props.category.children.length > 0
+
+const isDragging = ref(false)
+const isDragOver = ref(false)
+
+function handleDragStart(event: DragEvent) {
+  isDragging.value = true
+  emit('dragStart', event, props.category)
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault()
+  isDragOver.value = true
+  emit('dragOver', event, props.category)
+}
+
+function handleDragLeave(event: DragEvent) {
+  isDragOver.value = false
+  emit('dragLeave', event, props.category)
+}
+
+function handleDrop(event: DragEvent) {
+  event.preventDefault()
+  isDragOver.value = false
+  emit('drop', event, props.category)
+}
+
+function handleDragEnd(event: DragEvent) {
+  isDragging.value = false
+  emit('dragEnd', event)
+}
 </script>
 
 <template>
   <div>
-    <div class="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors group cursor-pointer"
+    <div
+      class="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all group cursor-pointer"
+      :class="{
+        'opacity-50': isDragging,
+        'ring-2 ring-[#ea580c] ring-opacity-50 bg-[#ea580c]/5': isDragOver
+      }"
       :style="{ paddingLeft: `${12 + (level || 0) * 24}px` }"
-      @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+      :draggable="draggable"
+      @dragstart="handleDragStart"
+      @dragover="handleDragOver"
+      @dragleave="handleDragLeave"
+      @drop="handleDrop"
+      @dragend="handleDragEnd"
+      @mouseenter="($event.currentTarget as HTMLElement).style.background = isDragOver ? '' : 'var(--bg-tertiary)'"
       @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
     >
+      <!-- Drag Handle -->
+      <div
+        v-if="draggable"
+        class="w-5 h-5 flex items-center justify-center flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      >
+        <GripVertical class="w-3.5 h-3.5" />
+      </div>
+
       <button v-if="hasChildren()" @click.stop="emit('toggle', category.id)"
         class="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-700 flex-shrink-0"
       >
@@ -65,10 +121,16 @@ const hasChildren = () => props.category.children && props.category.children.len
         :category="child"
         :expanded-ids="expandedIds"
         :level="(level || 0) + 1"
+        :draggable="draggable"
         @toggle="emit('toggle', $event)"
         @edit="emit('edit', $event)"
         @delete="(id, name) => emit('delete', id, name)"
         @add-child="emit('addChild', $event)"
+        @drag-start="(evt: DragEvent, cat: Category) => emit('dragStart', evt, cat)"
+        @drag-over="(evt: DragEvent, cat: Category) => emit('dragOver', evt, cat)"
+        @drag-leave="(evt: DragEvent, cat: Category) => emit('dragLeave', evt, cat)"
+        @drop="(evt: DragEvent, cat: Category) => emit('drop', evt, cat)"
+        @drag-end="(evt: DragEvent) => emit('dragEnd', evt)"
       />
     </div>
   </div>

@@ -20,3 +20,13 @@ export function updateCategory(id: number, data: Partial<Category>): Promise<Cat
 export function deleteCategory(id: number): Promise<void> {
   return request.delete(`/categories/${id}`)
 }
+
+export interface SortItem {
+  id: number
+  sortOrder: number
+  parentId?: number | null
+}
+
+export function updateCategorySort(items: SortItem[]): Promise<void> {
+  return request.post('/categories/sort', { items })
+}

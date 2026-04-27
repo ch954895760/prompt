@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.prompt.dto.CategoryCreateRequest.SortRequest;
+
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
@@ -45,6 +47,12 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, Authentication authentication) {
         categoryService.delete(id, getCurrentUserId(authentication));
+        return Result.success();
+    }
+
+    @PostMapping("/sort")
+    public Result<Void> updateSortOrder(@Valid @RequestBody SortRequest request, Authentication authentication) {
+        categoryService.updateSortOrder(request.getItems(), getCurrentUserId(authentication));
         return Result.success();
     }
 }

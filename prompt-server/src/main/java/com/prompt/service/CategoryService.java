@@ -31,11 +31,19 @@ public class CategoryService {
         List<Category> roots = new ArrayList<>();
         for (Category cat : all) {
             if (cat.getParentId() == null) {
-                cat.setChildren(parentMap.getOrDefault(cat.getId(), new ArrayList<>()));
+                buildTree(cat, parentMap);
                 roots.add(cat);
             }
         }
         return roots;
+    }
+
+    private void buildTree(Category parent, Map<Long, List<Category>> parentMap) {
+        List<Category> children = parentMap.getOrDefault(parent.getId(), new ArrayList<>());
+        parent.setChildren(children);
+        for (Category child : children) {
+            buildTree(child, parentMap);
+        }
     }
 
     public List<Category> list(Long userId) {
@@ -85,5 +93,20 @@ public class CategoryService {
             throw new BusinessException("请先删除子分类");
         }
         categoryMapper.deleteById(id);
+    }
+
+    @Transactional
+    public void updateSortOrder(List<com.prompt.dto.CategoryCreateRequest.SortItem> items, Long userId) {
+        for (com.prompt.dto.CategoryCreateRequest.SortItem item : items) {
+            Category category = categoryMapper.selectById(item.getId());
+            if (category == null || !category.getUserId().equals(userId)) {
+                continue;
+            }
+            category.setSortOrder(item.getSortOrder());
+            if (item.getParentId() != null) {
+                category.setParentId(item.getParentId());
+            }
+            categoryMapper.updateById(category);
+        }
     }
 }

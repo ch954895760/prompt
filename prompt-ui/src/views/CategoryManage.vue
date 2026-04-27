@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import CategoryNode from '@/components/CategoryNode.vue'
-import { getCategoryTree, createCategory, updateCategory, deleteCategory } from '@/api/category'
+import { getCategoryTree, createCategory, updateCategory, deleteCategory, updateCategorySort, type SortItem } from '@/api/category'
 import type { Category } from '@/types'
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, GripVertical } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
 const categories = ref<Category[]>([])
@@ -13,6 +13,7 @@ const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const editingId = ref<number | null>(null)
 const expandedIds = ref<Set<number>>(new Set())
+const isEditMode = ref(false)
 
 const form = ref({ name: '', parentId: null as number | null, color: '#ea580c', icon: '' })
 
@@ -134,6 +135,211 @@ function showToast(message: string) {
   }, 2500)
 }
 
+// ==================== 拖拽排序功能 ====================
+
+// 拖拽状态
+const draggedCategory = ref<Category | null>(null)
+const dragOverCategory = ref<Category | null>(null)
+const dragPosition = ref<'before' | 'after' | 'inside'>('after')
+
+// 扁平化分类列表用于排序
+const flatCategories = computed(() => {
+  const result: Category[] = []
+  function flatten(cats: Category[], parentId?: number) {
+    cats.forEach(cat => {
+      result.push({ ...cat, parentId: parentId ?? cat.parentId })
+      if (cat.children && cat.children.length > 0) {
+        flatten(cat.children, cat.id)
+      }
+    })
+  }
+  flatten(categories.value)
+  return result
+})
+
+// 获取同级别的分类
+function getSiblings(category: Category): Category[] {
+  if (!category.parentId) {
+    return categories.value.filter(c => !c.parentId)
+  }
+  
+  function findParent(cats: Category[], parentId: number): Category | null {
+    for (const cat of cats) {
+      if (cat.id === parentId) return cat
+      if (cat.children && cat.children.length > 0) {
+        const found = findParent(cat.children, parentId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  
+  const parent = findParent(categories.value, category.parentId)
+  return parent?.children || []
+}
+
+// 拖拽开始
+function handleDragStart(event: DragEvent, category: Category) {
+  if (!isEditMode.value) {
+    event.preventDefault()
+    return
+  }
+  draggedCategory.value = category
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(category.id))
+  }
+}
+
+// 拖拽经过
+function handleDragOver(event: DragEvent, category: Category) {
+  if (!isEditMode.value || !draggedCategory.value) return
+  event.preventDefault()
+  
+  dragOverCategory.value = category
+  
+  // 计算拖拽位置（在目标之前、之后或内部）
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const relativeY = event.clientY - rect.top
+  const height = rect.height
+  
+  if (relativeY < height * 0.25) {
+    dragPosition.value = 'before'
+  } else if (relativeY > height * 0.75) {
+    dragPosition.value = 'after'
+  } else {
+    dragPosition.value = 'inside'
+  }
+  
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+// 拖拽离开
+function handleDragLeave(event: DragEvent, category: Category) {
+  if (dragOverCategory.value?.id === category.id) {
+    dragOverCategory.value = null
+  }
+}
+
+// 放置
+async function handleDrop(event: DragEvent, targetCategory: Category) {
+  if (!isEditMode.value || !draggedCategory.value) return
+  event.preventDefault()
+  
+  const source = draggedCategory.value
+  const target = targetCategory
+  
+  // 防止拖放到自身或子元素中
+  if (source.id === target.id) {
+    resetDragState()
+    return
+  }
+  
+  // 检查是否拖放到自己的子元素中
+  if (isDescendant(source, target)) {
+    showToast('不能将分类拖放到其子分类中')
+    resetDragState()
+    return
+  }
+  
+  try {
+    // 构建新的排序数据
+    const sortItems = buildSortItems(source, target, dragPosition.value)
+    await updateCategorySort(sortItems)
+    showToast('排序已更新')
+    await loadData()
+  } catch (e: any) {
+    showToast(e.message || '排序失败')
+  } finally {
+    resetDragState()
+  }
+}
+
+// 检查target是否是source的后代
+function isDescendant(source: Category, target: Category): boolean {
+  function hasDescendant(cat: Category, id: number): boolean {
+    if (!cat.children || cat.children.length === 0) return false
+    for (const child of cat.children) {
+      if (child.id === id || hasDescendant(child, id)) return true
+    }
+    return false
+  }
+  return hasDescendant(source, target.id)
+}
+
+// 构建排序项目列表
+function buildSortItems(source: Category, target: Category, position: 'before' | 'after' | 'inside'): SortItem[] {
+  const items: SortItem[] = []
+  
+  // 确定新的parentId
+  let newParentId: number | null = null
+  let siblingList: Category[] = []
+  
+  if (position === 'inside') {
+    // 成为目标的子分类
+    newParentId = target.id
+    siblingList = target.children || []
+  } else {
+    // 与目标同级
+    newParentId = target.parentId ?? null
+    siblingList = getSiblings(target)
+  }
+  
+  // 重新排序同级别的分类
+  const reorderedSiblings: Category[] = []
+  
+  if (position === 'before') {
+    // 插入到目标之前
+    for (const sib of siblingList) {
+      if (sib.id === target.id) {
+        reorderedSiblings.push(source)
+      }
+      if (sib.id !== source.id) {
+        reorderedSiblings.push(sib)
+      }
+    }
+  } else if (position === 'after') {
+    // 插入到目标之后
+    for (const sib of siblingList) {
+      if (sib.id !== source.id) {
+        reorderedSiblings.push(sib)
+      }
+      if (sib.id === target.id) {
+        reorderedSiblings.push(source)
+      }
+    }
+  } else {
+    // 插入到子分类列表末尾
+    reorderedSiblings.push(...siblingList.filter(s => s.id !== source.id))
+    reorderedSiblings.push(source)
+  }
+  
+  // 生成排序项
+  reorderedSiblings.forEach((cat, index) => {
+    items.push({
+      id: cat.id,
+      sortOrder: index,
+      parentId: newParentId ?? cat.parentId
+    })
+  })
+  
+  return items
+}
+
+// 拖拽结束
+function handleDragEnd(event: DragEvent) {
+  resetDragState()
+}
+
+// 重置拖拽状态
+function resetDragState() {
+  draggedCategory.value = null
+  dragOverCategory.value = null
+  dragPosition.value = 'after'
+}
+
 onMounted(loadData)
 </script>
 
@@ -145,12 +351,25 @@ onMounted(loadData)
           <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">分类管理</h2>
           <p class="text-sm" style="color: var(--text-secondary)">组织你的提示词结构</p>
         </div>
-        <button @click="openCreateModal()"
-          class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
-        >
-          <Plus class="w-4 h-4" />
-          新建分类
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            @click="isEditMode = !isEditMode"
+            class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all"
+            :class="isEditMode 
+              ? 'bg-[#ea580c]/10 text-[#ea580c] hover:bg-[#ea580c]/20' 
+              : 'hover:opacity-80'"
+            :style="!isEditMode ? { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' } : {}"
+          >
+            <GripVertical class="w-4 h-4" />
+            {{ isEditMode ? '完成排序' : '排序模式' }}
+          </button>
+          <button @click="openCreateModal()"
+            class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
+          >
+            <Plus class="w-4 h-4" />
+            新建分类
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -162,10 +381,16 @@ onMounted(loadData)
             <CategoryNode v-for="cat in categories.filter(c => !c.parentId)" :key="cat.id"
               :category="cat"
               :expanded-ids="expandedIds"
+              :draggable="isEditMode"
               @toggle="toggleExpand"
               @edit="openEditModal"
               @delete="handleDelete"
               @add-child="openCreateModal"
+              @drag-start="handleDragStart"
+              @drag-over="handleDragOver"
+              @drag-leave="handleDragLeave"
+              @drop="handleDrop"
+              @drag-end="handleDragEnd"
             />
           </div>
         </div>
@@ -186,6 +411,29 @@ onMounted(loadData)
               <div class="flex items-center justify-between">
                 <span class="text-xs" style="color: var(--text-secondary)">提示词总数</span>
                 <span class="text-sm font-semibold" style="color: var(--text-primary)">{{ getTotalCount(categories) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 排序提示 -->
+          <div v-if="isEditMode" class="rounded-2xl p-5" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <h4 class="text-sm font-semibold mb-3" style="color: var(--text-primary)">排序说明</h4>
+            <div class="space-y-2 text-xs" style="color: var(--text-secondary)">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
+                <span>拖拽分类可调整顺序</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
+                <span>拖放到分类上方：排在前面</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
+                <span>拖放到分类下方：排在后面</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
+                <span>拖放到分类中间：成为子分类</span>
               </div>
             </div>
           </div>

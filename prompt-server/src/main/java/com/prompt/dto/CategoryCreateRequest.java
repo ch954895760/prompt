@@ -1,5 +1,6 @@
 package com.prompt.dto;
 
+import java.util.List;
 import javax.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -11,5 +12,17 @@ public class CategoryCreateRequest {
     private Integer sortOrder;
     private String icon;
     private String color;
+
+    @Data
+    public static class SortItem {
+        private Long id;
+        private Integer sortOrder;
+        private Long parentId;
+    }
+
+    @Data
+    public static class SortRequest {
+        private List<SortItem> items;
+    }
 }
 
