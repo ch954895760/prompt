@@ -22,3 +22,5 @@ temp/
 # Environment
 .env
 .env.local
+.claude/
+.trae/
