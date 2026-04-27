@@ -20,7 +20,7 @@ const tags = ref<Tag[]>([])
 const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(9)
 const viewMode = ref<'grid' | 'list'>('grid')
 const selectedCategory = ref<number | null>(null)
 const selectedTag = ref<number | null>(null)
@@ -238,7 +238,7 @@ onUnmounted(() => {
         <div class="flex items-center gap-2">
           <input ref="importFile" type="file" accept=".json" class="hidden" @change="handleImportFile">
           <button @click="handleImportClick"
-            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
             title="导入数据"
           >
@@ -246,7 +246,7 @@ onUnmounted(() => {
             导入
           </button>
           <button @click="handleExportJson"
-            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
             title="导出 JSON"
           >
@@ -254,7 +254,7 @@ onUnmounted(() => {
             导出 JSON
           </button>
           <button @click="handleExportMarkdown"
-            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-surface-100 dark:hover:bg-surface-800"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
             title="导出 Markdown"
           >
@@ -333,17 +333,17 @@ onUnmounted(() => {
             <option value="usageCount">使用最多</option>
             <option value="title">名称排序</option>
           </select>
-          <div class="flex rounded-lg overflow-hidden border" style="border-color: var(--border-color)">
+          <div class="flex rounded-lg overflow-hidden border" style="border-color: var(--border-color); background: var(--bg-primary);">
             <button @click="viewMode = 'grid'"
               class="px-3 py-2 transition-colors"
-              :class="viewMode === 'grid' ? 'bg-[#fff7ed] dark:bg-[#451a03]' : ''"
+              :class="viewMode === 'grid' ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--bg-tertiary)]'"
               :style="viewMode === 'grid' ? 'color: var(--accent)' : 'color: var(--text-muted)'"
             >
               <LayoutGrid class="w-4 h-4" />
             </button>
             <button @click="viewMode = 'list'"
               class="px-3 py-2 transition-colors"
-              :class="viewMode === 'list' ? 'bg-[#fff7ed] dark:bg-[#451a03]' : ''"
+              :class="viewMode === 'list' ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--bg-tertiary)]'"
               :style="viewMode === 'list' ? 'color: var(--accent)' : 'color: var(--text-muted)'"
             >
               <List class="w-4 h-4" />

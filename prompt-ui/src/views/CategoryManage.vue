@@ -477,7 +477,7 @@ onMounted(loadData)
         </div>
         <div class="flex gap-3 mt-6">
           <button @click="showModal = false"
-            class="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
+            class="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
             style="color: var(--text-secondary);"
           >
             取消
