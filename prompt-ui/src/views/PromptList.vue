@@ -405,7 +405,7 @@ onUnmounted(() => {
               >#{{ tag.name }}</span>
             </div>
             <button @click="copyPrompt(p.content, p.title, p.id)"
-              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-[#fff7ed] dark:hover:bg-[#451a03]"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-[var(--accent-soft)]"
               style="color: var(--accent);"
             >
               <Copy class="w-3 h-3" />
