@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'CustomFont';
+  src: url('./font.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: 'Outfit', system-ui, sans-serif;
-  --font-serif: 'Crimson Pro', Georgia, serif;
+  --font-sans: 'CustomFont', 'Outfit', system-ui, sans-serif;
+  --font-serif: 'CustomFont', 'Crimson Pro', Georgia, serif;
   --font-mono: 'JetBrains Mono', Menlo, monospace;
 
   --color-surface-50: #fafaf9;
@@ -53,7 +61,7 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Outfit', system-ui, sans-serif;
+  font-family: 'CustomFont', 'Outfit', system-ui, sans-serif;
 }
 
 /* Custom scrollbar */
