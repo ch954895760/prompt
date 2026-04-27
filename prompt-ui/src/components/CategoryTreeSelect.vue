@@ -45,7 +45,7 @@ function handleSelect() {
       <button
         v-if="hasChildren()"
         @click.stop="toggleExpand"
-        class="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-700 flex-shrink-0"
+        class="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] flex-shrink-0"
       >
         <ChevronRight
           class="w-3.5 h-3.5 transition-transform"

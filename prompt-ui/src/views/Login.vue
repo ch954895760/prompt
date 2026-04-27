@@ -66,7 +66,7 @@ async function handleRegister() {
     </div>
 
     <!-- Theme toggle -->
-    <button @click="toggleTheme" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-surface-200 dark:hover:bg-surface-800 z-20">
+    <button @click="toggleTheme" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
       <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
       <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
     </button>

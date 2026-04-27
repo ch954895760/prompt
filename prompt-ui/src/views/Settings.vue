@@ -457,14 +457,14 @@ onMounted(() => {
               </div>
               <div class="flex items-center gap-1">
                 <button v-if="!provider.isDefault" @click="handleSetDefault(provider)"
-                  class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                   style="color: var(--text-muted);"
                   title="设为默认"
                 >
                   <Check class="w-4 h-4" />
                 </button>
                 <button @click="openEditAiProvider(provider)"
-                  class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                   style="color: var(--text-muted);"
                   title="编辑"
                 >
@@ -530,7 +530,7 @@ onMounted(() => {
             {{ editingProvider ? '编辑AI配置' : '添加AI配置' }}
           </h3>
           <button @click="showAiProviderModal = false"
-            class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+            class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
             style="color: var(--text-muted);"
           >
             <X class="w-5 h-5" />
@@ -650,7 +650,7 @@ onMounted(() => {
             修改密码
           </h3>
           <button @click="closePasswordModal"
-            class="p-2 rounded-lg transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+            class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
             style="color: var(--text-muted);"
           >
             <X class="w-5 h-5" />

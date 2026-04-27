@@ -599,7 +599,7 @@ onUnmounted(() => {
               停止生成
             </button>
             <button @click="clearEditor"
-              class="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
+              class="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
               style="color: var(--text-secondary);"
             >
               清空
@@ -624,7 +624,7 @@ onUnmounted(() => {
                   <span style="color: var(--text-secondary)">{{ new Date(h.createdAt).toLocaleString() }}</span>
                 </div>
                 <button @click="handleRollback(h.version)"
-                  class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-surface-200 dark:hover:bg-surface-800"
+                  class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                   style="color: var(--accent);"
                   title="回滚到此版本"
                 >
@@ -646,7 +646,7 @@ onUnmounted(() => {
             >
               <div class="absolute top-4 right-4">
                 <button @click="handleCopy"
-                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-surface-200 dark:hover:bg-surface-800"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:bg-[var(--bg-tertiary)]"
                   style="color: var(--text-muted); border: 1px solid var(--border-color);"
                 >
                   <Copy class="w-3.5 h-3.5" />
