@@ -53,9 +53,24 @@ async function loadRecentlyUsed() {
 }
 
 async function copyPrompt(content: string, title: string, id: number) {
-  await navigator.clipboard.writeText(content)
-  await usePrompt(id)
-  showToast(`"${title}" 已复制`)
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(content)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    await usePrompt(id)
+    showToast(`"${title}" 已复制`)
+  } catch (e) {
+    showToast('复制失败，请手动复制')
+  }
 }
 
 const toastVisible = ref(false)
@@ -76,9 +91,24 @@ function navigate(path: string) {
 }
 
 async function copyRecentlyUsed(content: string, title: string, id: number) {
-  await navigator.clipboard.writeText(content)
-  await usePrompt(id, '从最近使用复制')
-  showToast(`"${title}" 已复制`)
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(content)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    await usePrompt(id, '从最近使用复制')
+    showToast(`"${title}" 已复制`)
+  } catch (e) {
+    showToast('复制失败，请手动复制')
+  }
 }
 
 onMounted(() => {
