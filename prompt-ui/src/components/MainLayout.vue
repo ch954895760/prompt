@@ -18,11 +18,15 @@ const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const searchQuery = ref('')
 
-// 组件挂载时从 localStorage 读取折叠状态
+// 组件挂载时从 localStorage 读取折叠状态，并从 URL 读取搜索关键词
 onMounted(() => {
   const stored = localStorage.getItem('sidebarCollapsed')
   if (stored !== null) {
     sidebarCollapsed.value = stored === 'true'
+  }
+  // 从 URL 参数初始化搜索框内容
+  if (route.query.q) {
+    searchQuery.value = route.query.q as string
   }
 })
 
