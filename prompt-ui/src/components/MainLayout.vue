@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { debounce } from '@/utils/debounce'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import {
   Sparkles, LayoutDashboard, FileText, PenTool,
   FolderTree, Tag, Settings, Menu, X, LogOut,
-  Search, Sun, Moon, Bell
+  Search, Sun, Moon, Bell, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 
@@ -15,7 +15,21 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(false)
 const searchQuery = ref('')
+
+// 组件挂载时从 localStorage 读取折叠状态
+onMounted(() => {
+  const stored = localStorage.getItem('sidebarCollapsed')
+  if (stored !== null) {
+    sidebarCollapsed.value = stored === 'true'
+  }
+})
+
+// 监听折叠状态变化，保存到 localStorage
+watch(sidebarCollapsed, (newValue) => {
+  localStorage.setItem('sidebarCollapsed', String(newValue))
+})
 
 function toggleTheme() {
   userStore.toggleTheme()
@@ -28,6 +42,10 @@ checkTheme()
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
+}
+
+function toggleSidebarCollapse() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
 }
 
 function navigate(path: string) {
@@ -88,48 +106,70 @@ watch(() => route.query.q, (q) => {
     ></div>
 
     <!-- Sidebar -->
-    <aside class="sidebar w-64 flex-shrink-0 flex flex-col h-screen sticky top-0 z-40 transition-transform duration-300 lg:translate-x-0"
-      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    <aside class="sidebar flex-shrink-0 flex flex-col h-screen sticky top-0 z-40 transition-all duration-300 lg:translate-x-0"
+      :class="[
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      ]"
       style="background: var(--bg-secondary); border-right: 1px solid var(--border-color);"
     >
       <!-- Logo -->
-      <div class="p-5 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-[#ea580c] text-white flex items-center justify-center shadow-md shadow-[#ea580c]/20">
+      <div class="p-5 flex items-center gap-3" :class="sidebarCollapsed ? 'justify-center' : ''">
+        <div class="w-9 h-9 rounded-xl bg-[#ea580c] text-white flex items-center justify-center shadow-md shadow-[#ea580c]/20 flex-shrink-0">
           <Sparkles class="w-5 h-5" />
         </div>
-        <span class="font-bold text-lg tracking-tight" style="color: var(--text-primary)">Prompt Vault</span>
-        <button class="lg:hidden ml-auto" @click="toggleSidebar">
+        <span v-if="!sidebarCollapsed" class="font-bold text-lg tracking-tight truncate" style="color: var(--text-primary)">Prompt Vault</span>
+        <button v-if="!sidebarCollapsed" class="lg:hidden ml-auto" @click="toggleSidebar">
           <X class="w-5 h-5" style="color: var(--text-secondary)" />
         </button>
       </div>
 
+      <!-- Collapse Toggle Button (Desktop) -->
+      <button
+        @click="toggleSidebarCollapse"
+        class="hidden lg:flex items-center justify-center py-2 mx-3 mb-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+        style="color: var(--text-muted)"
+        :title="sidebarCollapsed ? '展开菜单' : '收起菜单'"
+      >
+        <ChevronLeft v-if="!sidebarCollapsed" class="w-4 h-4" />
+        <ChevronRight v-else class="w-4 h-4" />
+      </button>
+
       <!-- Navigation -->
       <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
-        <div class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2" style="color: var(--text-muted)">工作区</div>
+        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2" style="color: var(--text-muted)">工作区</div>
         <a v-for="item in navItems" :key="item.path" href="#"
-          class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium"
-          :class="currentRoute === item.path ? 'active' : ''"
+          class="nav-item flex items-center text-sm font-medium"
+          :class="[
+            currentRoute === item.path ? 'active' : '',
+            sidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3 py-2.5'
+          ]"
           :style="currentRoute === item.path ? '' : 'color: var(--text-secondary)'"
           @click.prevent="navigate(item.path)"
+          :title="sidebarCollapsed ? item.label : ''"
         >
-          <component :is="item.icon" class="w-4.5 h-4.5" />
-          {{ item.label }}
+          <component :is="item.icon" class="w-4.5 h-4.5 flex-shrink-0" />
+          <span v-if="!sidebarCollapsed" class="truncate">{{ item.label }}</span>
         </a>
 
-        <div class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2 mt-4" style="color: var(--text-muted)">管理</div>
+        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2 mt-4" style="color: var(--text-muted)">管理</div>
         <a v-for="item in manageItems" :key="item.path" href="#"
-          class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium"
-          :class="currentRoute === item.path ? 'active' : ''"
+          class="nav-item flex items-center text-sm font-medium"
+          :class="[
+            currentRoute === item.path ? 'active' : '',
+            sidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3 py-2.5'
+          ]"
           :style="currentRoute === item.path ? '' : 'color: var(--text-secondary)'"
           @click.prevent="navigate(item.path)"
+          :title="sidebarCollapsed ? item.label : ''"
         >
-          <component :is="item.icon" class="w-4.5 h-4.5" />
-          {{ item.label }}
+          <component :is="item.icon" class="w-4.5 h-4.5 flex-shrink-0" />
+          <span v-if="!sidebarCollapsed" class="truncate">{{ item.label }}</span>
         </a>
       </nav>
 
       <!-- User section -->
-      <div class="p-4 mx-3 mb-3 rounded-xl" style="background: var(--bg-tertiary)">
+      <div v-if="!sidebarCollapsed" class="p-4 mx-3 mb-3 rounded-xl" style="background: var(--bg-tertiary)">
         <div class="flex items-center gap-3 mb-3">
           <img
             v-if="userStore.user?.avatar"
@@ -154,6 +194,18 @@ watch(() => route.query.q, (q) => {
         >
           <LogOut class="w-3.5 h-3.5" />
           退出登录
+        </button>
+      </div>
+
+      <!-- Collapsed User Avatar Only -->
+      <div v-else class="px-3 mb-3 flex justify-center">
+        <button
+          @click="handleLogout"
+          class="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+          style="background: var(--bg-tertiary); color: var(--text-secondary)"
+          title="退出登录"
+        >
+          <LogOut class="w-4 h-4" />
         </button>
       </div>
     </aside>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MainLayout from '@/components/MainLayout.vue'
@@ -16,12 +16,45 @@ const categories = ref<Category[]>([])
 const recentlyUsedPrompts = ref<Prompt[]>([])
 const loading = ref(false)
 const loadingRecentlyUsed = ref(false)
+const currentTime = ref(new Date())
+let timeTimer: ReturnType<typeof setInterval> | null = null
 
 const stats = computed(() => ({
   total: prompts.value.length,
   categories: categories.value.length,
   weeklyUsage: prompts.value.reduce((sum, p) => sum + (p.usageCount || 0), 0),
 }))
+
+// 根据当前时间返回问候语
+const greeting = computed(() => {
+  const hour = currentTime.value.getHours()
+  if (hour < 6) return '晚上好'
+  if (hour < 9) return '早上好'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  return '晚上好'
+})
+
+// 格式化当前时间
+const formattedTime = computed(() => {
+  const date = currentTime.value
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${hours}:${minutes}:${seconds}`
+})
+
+// 格式化当前日期
+const formattedDate = computed(() => {
+  const date = currentTime.value
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const weekDay = weekDays[date.getDay()]
+  return `${year}年${month}月${day}日 ${weekDay}`
+})
 
 const recentPrompts = computed(() => prompts.value.slice(0, 4))
 
@@ -114,17 +147,35 @@ async function copyRecentlyUsed(content: string, title: string, id: number) {
 onMounted(() => {
   loadData()
   loadRecentlyUsed()
+  // 启动时间定时器，每秒更新
+  timeTimer = setInterval(() => {
+    currentTime.value = new Date()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  // 清除时间定时器
+  if (timeTimer) {
+    clearInterval(timeTimer)
+    timeTimer = null
+  }
 })
 </script>
 
 <template>
   <MainLayout>
     <div class="animate-fade-in">
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
-          早上好, {{ userStore.user?.username || '用户' }}
-        </h2>
-        <p class="text-sm" style="color: var(--text-secondary)">今天准备创作什么?</p>
+      <div class="mb-8 flex items-start justify-between">
+        <div>
+          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
+            {{ greeting }}, {{ userStore.user?.username || '用户' }}
+          </h2>
+          <p class="text-sm" style="color: var(--text-secondary)">今天准备创作什么?</p>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-mono font-bold" style="color: var(--accent)">{{ formattedTime }}</div>
+          <div class="text-xs mt-1" style="color: var(--text-muted)">{{ formattedDate }}</div>
+        </div>
       </div>
 
       <!-- Stats cards -->
