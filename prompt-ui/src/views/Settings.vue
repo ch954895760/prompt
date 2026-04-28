@@ -29,6 +29,8 @@ const form = ref({
 
 // AI Provider Management
 const aiProviders = ref<AiProvider[]>([])
+const systemProviders = computed(() => aiProviders.value.filter(p => p.isSystem))
+const userProviders = computed(() => aiProviders.value.filter(p => !p.isSystem))
 const showAiProviderModal = ref(false)
 const editingProvider = ref<AiProvider | null>(null)
 const deletingProvider = ref<AiProvider | null>(null)
@@ -63,6 +65,7 @@ const providerOptions = [
   { value: 'deepseek', label: 'DeepSeek', icon: '🐋', models: ['deepseek-chat', 'deepseek-coder'] },
   { value: 'qwen', label: '通义千问', icon: '🌙', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
   { value: 'wenxin', label: '文心一言', icon: '📚', models: ['ernie-bot-4', 'ernie-bot'] },
+  { value: 'minimax', label: 'MiniMax', icon: '🎭', models: ['MiniMax-M2.7', 'MiniMax-Text-01', 'abab6.5s'] },
   { value: 'custom', label: '自定义', icon: '⚙️', models: [] },
 ]
 
@@ -422,61 +425,106 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- AI Provider List -->
-          <div class="space-y-3">
-            <div v-if="aiProviders.length === 0" class="text-center py-8 rounded-xl" style="background: var(--bg-primary); border: 1px dashed var(--border-color);">
-              <Bot class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted)" />
-              <p class="text-sm" style="color: var(--text-muted)">暂无AI配置</p>
-              <p class="text-xs mt-1" style="color: var(--text-muted)">点击上方按钮添加你的第一个AI模型</p>
-            </div>
-
-            <div v-for="provider in aiProviders" :key="provider.id"
-              class="flex items-center gap-3 p-4 rounded-xl transition-all hover:shadow-md"
-              :class="provider.isDefault ? 'ring-1' : ''"
-              style="background: var(--bg-primary); border: 1px solid var(--border-color);"
-              :style="provider.isDefault ? 'ring-color: var(--accent)' : ''"
-            >
-              <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
-                style="background: var(--bg-secondary);"
+          <!-- System AI Providers -->
+          <div v-if="systemProviders.length > 0" class="mb-6">
+            <h4 class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-secondary)">
+              系统公共模型
+            </h4>
+            <div class="space-y-2">
+              <div v-for="provider in systemProviders" :key="provider.id"
+                class="flex items-center gap-3 p-3 rounded-xl transition-all"
+                :class="provider.isDefault ? 'ring-1' : ''"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color);"
+                :style="provider.isDefault ? 'ring-color: var(--accent)' : ''"
               >
-                {{ getProviderIcon(provider.provider) }}
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                  style="background: var(--bg-secondary);"
+                >
+                  {{ getProviderIcon(provider.provider) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-sm truncate" style="color: var(--text-primary)">{{ provider.name }}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      style="background: var(--bg-tertiary); color: var(--text-secondary);"
+                    >
+                      系统
+                    </span>
+                    <span v-if="provider.isDefault"
+                      class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      style="background: var(--accent); color: white;"
+                    >
+                      默认
+                    </span>
+                  </div>
+                  <div class="text-xs mt-0.5" style="color: var(--text-muted)">
+                    {{ getProviderLabel(provider.provider) }} · {{ provider.model }}
+                  </div>
+                </div>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="font-medium text-sm truncate" style="color: var(--text-primary)">{{ provider.name }}</span>
-                  <span v-if="provider.isDefault"
-                    class="text-[10px] px-1.5 py-0.5 rounded-full"
-                    style="background: var(--accent); color: white;"
+            </div>
+          </div>
+
+          <!-- User AI Providers -->
+          <div>
+            <h4 v-if="systemProviders.length > 0" class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-secondary)">
+              我的模型
+            </h4>
+            <div class="space-y-3">
+              <div v-if="aiProviders.length === 0" class="text-center py-8 rounded-xl" style="background: var(--bg-primary); border: 1px dashed var(--border-color);">
+                <Bot class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted)" />
+                <p class="text-sm" style="color: var(--text-muted)">暂无AI配置</p>
+                <p class="text-xs mt-1" style="color: var(--text-muted)">点击上方按钮添加你的第一个AI模型</p>
+              </div>
+
+              <div v-for="provider in userProviders" :key="provider.id"
+                class="flex items-center gap-3 p-4 rounded-xl transition-all hover:shadow-md"
+                :class="provider.isDefault ? 'ring-1' : ''"
+                style="background: var(--bg-primary); border: 1px solid var(--border-color);"
+                :style="provider.isDefault ? 'ring-color: var(--accent)' : ''"
+              >
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                  style="background: var(--bg-secondary);"
+                >
+                  {{ getProviderIcon(provider.provider) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-sm truncate" style="color: var(--text-primary)">{{ provider.name }}</span>
+                    <span v-if="provider.isDefault"
+                      class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      style="background: var(--accent); color: white;"
+                    >
+                      默认
+                    </span>
+                  </div>
+                  <div class="text-xs mt-0.5" style="color: var(--text-muted)">
+                    {{ getProviderLabel(provider.provider) }} · {{ provider.model }}
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button v-if="!provider.isDefault" @click="handleSetDefault(provider)"
+                    class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+                    style="color: var(--text-muted);"
+                    title="设为默认"
                   >
-                    默认
-                  </span>
+                    <Check class="w-4 h-4" />
+                  </button>
+                  <button @click="openEditAiProvider(provider)"
+                    class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+                    style="color: var(--text-muted);"
+                    title="编辑"
+                  >
+                    <Edit2 class="w-4 h-4" />
+                  </button>
+                  <button @click="handleDeleteAiProvider(provider)"
+                    class="p-2 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                    style="color: var(--text-muted);"
+                    title="删除"
+                  >
+                    <Trash2 class="w-4 h-4 hover:text-red-500" />
+                  </button>
                 </div>
-                <div class="text-xs mt-0.5" style="color: var(--text-muted)">
-                  {{ getProviderLabel(provider.provider) }} · {{ provider.model }}
-                </div>
-              </div>
-              <div class="flex items-center gap-1">
-                <button v-if="!provider.isDefault" @click="handleSetDefault(provider)"
-                  class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-                  style="color: var(--text-muted);"
-                  title="设为默认"
-                >
-                  <Check class="w-4 h-4" />
-                </button>
-                <button @click="openEditAiProvider(provider)"
-                  class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-                  style="color: var(--text-muted);"
-                  title="编辑"
-                >
-                  <Edit2 class="w-4 h-4" />
-                </button>
-                <button @click="handleDeleteAiProvider(provider)"
-                  class="p-2 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
-                  style="color: var(--text-muted);"
-                  title="删除"
-                >
-                  <Trash2 class="w-4 h-4 hover:text-red-500" />
-                </button>
               </div>
             </div>
           </div>

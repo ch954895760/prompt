@@ -88,9 +88,9 @@ CREATE TABLE IF NOT EXISTS user_setting (
 -- AI提供商配置表
 CREATE TABLE IF NOT EXISTS ai_provider (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT DEFAULT NULL COMMENT '用户ID，NULL表示系统级公共模型',
     name VARCHAR(100) NOT NULL COMMENT '配置名称',
-    provider VARCHAR(50) NOT NULL COMMENT '提供商类型: openai, claude, gemini等',
+    provider VARCHAR(50) NOT NULL COMMENT '提供商类型: openai, claude, gemini, minimax等',
     api_base_url VARCHAR(255) NOT NULL COMMENT 'API基础URL',
     api_key_encrypted VARCHAR(255) NOT NULL COMMENT '加密的API Key',
     model VARCHAR(100) NOT NULL COMMENT '模型名称',
@@ -101,6 +101,11 @@ CREATE TABLE IF NOT EXISTS ai_provider (
     INDEX idx_user_id (user_id),
     INDEX idx_user_default (user_id, is_default)
 );
+
+-- 系统AI提供商初始化数据
+-- 注意：执行此SQL前，需要先用AesUtil加密API Key，然后将加密后的值填入api_key_encrypted字段
+-- INSERT INTO ai_provider (user_id, name, provider, api_base_url, api_key_encrypted, model, is_default, sort_order) VALUES
+-- (NULL, 'MiniMax 公共模型', 'minimax', 'https://api.minimaxi.com/v1', '加密后的API_KEY', 'MiniMax-M2.7', 1, 0);
 
 -- 提示词使用记录表
 CREATE TABLE IF NOT EXISTS prompt_usage_log (

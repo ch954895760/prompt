@@ -71,6 +71,7 @@ export interface AiProvider {
   model: string
   isDefault: boolean
   sortOrder: number
+  isSystem?: boolean
   createdAt: string
   updatedAt: string
 }

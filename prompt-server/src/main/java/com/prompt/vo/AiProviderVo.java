@@ -13,6 +13,7 @@ public class AiProviderVo {
     private String model;
     private Boolean isDefault;
     private Integer sortOrder;
+    private Boolean isSystem;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
