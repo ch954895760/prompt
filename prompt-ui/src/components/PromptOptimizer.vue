@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp, Clock, Cpu, Hash } from 'lucide-vue-next'
 import type { PromptOptimizeResponse, OptimizeSuggestion } from '@/types'
 import { optimizePrompt } from '@/api/promptOptimizer'
@@ -20,6 +20,8 @@ const error = ref('')
 const optimizeResult = ref<PromptOptimizeResponse | null>(null)
 const showComparison = ref(false)
 const expandedSuggestions = ref<Set<number>>(new Set())
+const waitSeconds = ref(0)
+let waitTimer: ReturnType<typeof setInterval> | null = null
 
 const scoreColor = computed(() => {
   const score = optimizeResult.value?.score || 0
@@ -117,6 +119,21 @@ function toggleSuggestion(index: number) {
   }
 }
 
+function startWaitTimer() {
+  waitSeconds.value = 0
+  waitTimer = setInterval(() => {
+    waitSeconds.value++
+  }, 1000)
+}
+
+function stopWaitTimer() {
+  if (waitTimer) {
+    clearInterval(waitTimer)
+    waitTimer = null
+  }
+  waitSeconds.value = 0
+}
+
 async function handleOptimize(forceRefresh = false) {
   if (!props.currentPrompt.trim()) {
     error.value = '请先输入提示词内容'
@@ -127,6 +144,7 @@ async function handleOptimize(forceRefresh = false) {
   error.value = ''
   optimizeResult.value = null
   expandedSuggestions.value.clear()
+  startWaitTimer()
 
   try {
     optimizeResult.value = await optimizePrompt({
@@ -138,8 +156,13 @@ async function handleOptimize(forceRefresh = false) {
     error.value = e.message || '优化失败，请重试'
   } finally {
     loading.value = false
+    stopWaitTimer()
   }
 }
+
+onUnmounted(() => {
+  stopWaitTimer()
+})
 
 function applyOptimization() {
   if (optimizeResult.value?.optimizedPrompt) {
@@ -224,6 +247,9 @@ watch(() => props.modelValue, (newVal) => {
               </div>
               <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">正在分析提示词...</p>
               <p class="text-xs" style="color: var(--text-muted)">AI 正在评估质量和生成优化建议</p>
+              <p v-if="waitSeconds > 10" class="text-xs mt-2 font-medium" style="color: var(--accent);">
+                已等待 {{ waitSeconds }} 秒
+              </p>
             </div>
 
             <!-- Error State -->
