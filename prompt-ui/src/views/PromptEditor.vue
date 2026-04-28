@@ -45,6 +45,9 @@ const categoryId = ref<number | null>(null)
 const selectedTagIds = ref<number[]>([])
 const newTagInput = ref('')
 const tagInputFocused = ref(false)
+const showTagDropdown = ref(false)
+const tagDropdownRef = ref<HTMLElement | null>(null)
+const tagHighlightIndex = ref(-1) // 当前高亮的标签索引
 
 const categories = ref<Category[]>([])
 const categoryTree = ref<Category[]>([])
@@ -359,6 +362,32 @@ function handleStopTest() {
   aiLoading.value = false
 }
 
+// 过滤后的标签列表（搜索功能）
+const filteredTags = computed(() => {
+  const input = newTagInput.value.trim().toLowerCase()
+  if (!input) return tags.value.filter(t => !selectedTagIds.value.includes(t.id))
+  return tags.value.filter(t =>
+    !selectedTagIds.value.includes(t.id) &&
+    t.name.toLowerCase().includes(input)
+  )
+})
+
+// 是否有完全匹配的标签
+const hasExactMatch = computed(() => {
+  const input = newTagInput.value.trim().toLowerCase()
+  if (!input) return false
+  return tags.value.some(t => t.name.toLowerCase() === input)
+})
+
+// 下拉框总选项数（标签 + 可能的"新建"选项）
+const totalTagOptions = computed(() => {
+  let count = filteredTags.value.length
+  if (newTagInput.value.trim() && !hasExactMatch.value) {
+    count += 1 // 新建选项
+  }
+  return count
+})
+
 function handleAddTag() {
   const name = newTagInput.value.trim()
   if (!name) return
@@ -374,6 +403,81 @@ function handleAddTag() {
     })
   }
   newTagInput.value = ''
+  tagHighlightIndex.value = -1
+  // 保持下拉框打开，方便继续选择
+  showTagDropdown.value = true
+}
+
+function selectTag(tag: Tag) {
+  if (!selectedTagIds.value.includes(tag.id)) {
+    selectedTagIds.value.push(tag.id)
+  }
+  newTagInput.value = ''
+  tagHighlightIndex.value = -1
+  // 保持下拉框打开，方便继续选择
+  showTagDropdown.value = true
+}
+
+function handleTagInputFocus() {
+  tagInputFocused.value = true
+  showTagDropdown.value = true
+  tagHighlightIndex.value = -1
+}
+
+function handleTagInputBlur() {
+  tagInputFocused.value = false
+  // 延迟关闭下拉框，以便点击下拉项
+  setTimeout(() => {
+    showTagDropdown.value = false
+    tagHighlightIndex.value = -1
+  }, 200)
+}
+
+// 处理标签输入框的键盘事件
+function handleTagKeydown(event: KeyboardEvent) {
+  if (!showTagDropdown.value) return
+
+  const totalOptions = totalTagOptions.value
+  if (totalOptions === 0) return
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault()
+      tagHighlightIndex.value = (tagHighlightIndex.value + 1) % totalOptions
+      break
+    case 'ArrowUp':
+      event.preventDefault()
+      tagHighlightIndex.value = (tagHighlightIndex.value - 1 + totalOptions) % totalOptions
+      break
+    case 'Enter':
+      event.preventDefault()
+      if (tagHighlightIndex.value >= 0 && tagHighlightIndex.value < filteredTags.value.length) {
+        // 选择高亮的标签
+        const selectedTag = filteredTags.value[tagHighlightIndex.value]
+        if (selectedTag) {
+          selectTag(selectedTag)
+        }
+      } else if (tagHighlightIndex.value >= filteredTags.value.length && newTagInput.value.trim() && !hasExactMatch.value) {
+        // 新建标签
+        handleAddTag()
+      } else if (tagHighlightIndex.value === -1 && newTagInput.value.trim()) {
+        // 没有高亮项时，回车默认创建新标签或选择第一个匹配项
+        handleAddTag()
+      }
+      break
+    case 'Escape':
+      showTagDropdown.value = false
+      tagHighlightIndex.value = -1
+      break
+    case 'Backspace':
+      // 当输入框为空时，删除最后一个已选择的标签
+      if (!newTagInput.value && selectedTagIds.value.length > 0) {
+        event.preventDefault()
+        const lastTagId = selectedTagIds.value[selectedTagIds.value.length - 1]!
+        removeTag(lastTagId)
+      }
+      break
+  }
 }
 
 function removeTag(tagId: number) {
@@ -547,7 +651,7 @@ onUnmounted(() => {
                 />
               </div>
             </div>
-            <div class="flex-1">
+            <div class="flex-1 relative" ref="tagDropdownRef">
               <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">标签</label>
               <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 rounded-lg text-sm transition-all"
                 :style="{ borderColor: tagInputFocused ? 'var(--accent)' : 'var(--border-color)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
@@ -564,11 +668,43 @@ onUnmounted(() => {
                 <input v-model="newTagInput" type="text"
                   class="flex-1 min-w-[80px] px-2 py-1 bg-transparent text-sm outline-none"
                   style="color: var(--text-primary);"
-                  placeholder="输入标签名按回车"
-                  @keyup.enter="handleAddTag"
-                  @focus="tagInputFocused = true"
-                  @blur="tagInputFocused = false"
+                  placeholder="搜索或新建标签"
+                  @keydown="handleTagKeydown"
+                  @focus="handleTagInputFocus"
+                  @blur="handleTagInputBlur"
                 >
+              </div>
+              <!-- 标签搜索下拉框 -->
+              <div v-if="showTagDropdown && (filteredTags.length > 0 || (newTagInput.trim() && !hasExactMatch))"
+                class="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-lg"
+                style="background: var(--bg-secondary); border: 1px solid var(--border-color); max-height: 200px; overflow-y: auto;"
+              >
+                <!-- 已有标签列表 -->
+                <div v-for="(tag, index) in filteredTags" :key="tag.id"
+                  @click="selectTag(tag)"
+                  class="px-4 py-2 cursor-pointer transition-colors text-sm"
+                  :style="{
+                    color: tagHighlightIndex === index ? 'var(--accent)' : 'var(--text-primary)',
+                    background: tagHighlightIndex === index ? 'var(--accent-soft)' : 'transparent'
+                  }"
+                  @mouseenter="tagHighlightIndex = index"
+                >
+                  {{ tag.name }}
+                </div>
+                <!-- 新建标签选项 -->
+                <div v-if="newTagInput.trim() && !hasExactMatch"
+                  @click="handleAddTag"
+                  class="px-4 py-2 cursor-pointer transition-colors text-sm flex items-center gap-2"
+                  :style="{
+                    color: tagHighlightIndex === filteredTags.length ? 'var(--accent)' : 'var(--accent)',
+                    background: tagHighlightIndex === filteredTags.length ? 'var(--accent-soft)' : 'transparent',
+                    borderTop: '1px solid var(--border-color)'
+                  }"
+                  @mouseenter="tagHighlightIndex = filteredTags.length"
+                >
+                  <span class="text-xs px-1.5 py-0.5 rounded" style="background: var(--accent); color: white;">新建</span>
+                  <span>"{{ newTagInput.trim() }}"</span>
+                </div>
               </div>
             </div>
           </div>
