@@ -6,7 +6,7 @@
         <span class="avatar-letter">{{ username?.charAt(0)?.toUpperCase() || 'U' }}</span>
       </div>
       <div class="avatar-overlay">
-        <el-icon><Camera /></el-icon>
+        <Camera class="camera-icon" />
       </div>
     </div>
     <input
@@ -151,8 +151,9 @@ const handleFileChange = async (event: Event) => {
   opacity: 0;
   transition: opacity 0.3s;
   
-  .el-icon {
-    font-size: 32px;
+  .camera-icon {
+    width: 32px;
+    height: 32px;
     color: #fff;
   }
 }

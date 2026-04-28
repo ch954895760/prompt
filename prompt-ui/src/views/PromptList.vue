@@ -6,7 +6,7 @@ import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, 
 import { getCategoryTree } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
-import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload } from 'lucide-vue-next'
+import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload, FileText } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 

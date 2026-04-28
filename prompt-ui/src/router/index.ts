@@ -52,12 +52,10 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   const userStore = useUserStore()
   if (!to.meta.public && !userStore.isLoggedIn) {
-    next('/login')
-  } else {
-    next()
+    return '/login'
   }
 })
 
