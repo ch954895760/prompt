@@ -333,6 +333,73 @@ function handleDragEnd(event: DragEvent) {
   resetDragState()
 }
 
+// 拖放到容器成为顶级分类
+function handleContainerDragOver(event: DragEvent) {
+  if (!isEditMode.value || !draggedCategory.value) return
+  event.preventDefault()
+  
+  // 只有当拖拽到空白区域时才显示放置指示
+  const target = event.target as HTMLElement
+  if (target.closest('.category-node')) return
+  
+  dragOverCategory.value = null
+  dragPosition.value = 'after'
+  
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+// 放置到容器成为顶级分类
+async function handleContainerDrop(event: DragEvent) {
+  if (!isEditMode.value || !draggedCategory.value) return
+  event.preventDefault()
+  
+  // 只有当放置到空白区域时才处理
+  const target = event.target as HTMLElement
+  if (target.closest('.category-node')) return
+  
+  const source = draggedCategory.value
+  
+  try {
+    // 获取所有顶级分类
+    const rootCategories = categories.value.filter(c => !c.parentId)
+    
+    // 如果已经是顶级分类，不做任何操作
+    if (source.parentId === null && rootCategories.some(c => c.id === source.id)) {
+      resetDragState()
+      return
+    }
+    
+    // 构建新的排序数据：将拖拽的分类放到顶级分类列表末尾
+    const items: SortItem[] = []
+    
+    // 保留其他顶级分类
+    rootCategories.forEach((cat, index) => {
+      items.push({
+        id: cat.id,
+        sortOrder: index,
+        parentId: null
+      })
+    })
+    
+    // 添加拖拽的分类到末尾
+    items.push({
+      id: source.id,
+      sortOrder: rootCategories.length,
+      parentId: null
+    })
+    
+    await updateCategorySort(items)
+    showToast('已移动到顶级目录')
+    await loadData()
+  } catch (e: any) {
+    showToast(e.message || '移动失败')
+  } finally {
+    resetDragState()
+  }
+}
+
 // 重置拖拽状态
 function resetDragState() {
   draggedCategory.value = null
@@ -374,7 +441,12 @@ onMounted(loadData)
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Category tree -->
-        <div class="lg:col-span-2 rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+        <div class="lg:col-span-2 rounded-2xl p-6 relative"
+          style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
+          :class="{ 'ring-2 ring-[#ea580c] ring-opacity-30': isEditMode && draggedCategory && !dragOverCategory }"
+          @dragover="handleContainerDragOver"
+          @drop="handleContainerDrop"
+        >
           <div v-if="loading" class="text-center py-8" style="color: var(--text-muted)">加载中...</div>
           <div v-else-if="categories.length === 0" class="text-center py-8" style="color: var(--text-muted)">暂无分类</div>
           <div v-else class="space-y-1">
@@ -382,6 +454,7 @@ onMounted(loadData)
               :category="cat"
               :expanded-ids="expandedIds"
               :draggable="isEditMode"
+              class="category-node"
               @toggle="toggleExpand"
               @edit="openEditModal"
               @delete="handleDelete"
@@ -392,6 +465,14 @@ onMounted(loadData)
               @drop="handleDrop"
               @drag-end="handleDragEnd"
             />
+          </div>
+          <!-- 拖放到顶级目录的提示 -->
+          <div v-if="isEditMode && draggedCategory && !dragOverCategory"
+            class="absolute inset-0 flex items-center justify-center pointer-events-none"
+          >
+            <div class="px-4 py-2 rounded-lg text-sm font-medium bg-[#ea580c]/10 text-[#ea580c] border border-[#ea580c]/30">
+              拖放到此处成为顶级分类
+            </div>
           </div>
         </div>
 
@@ -434,6 +515,10 @@ onMounted(loadData)
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
                 <span>拖放到分类中间：成为子分类</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#ea580c]/30 border border-[#ea580c]/50"></div>
+                <span>拖放到空白区域：成为顶级分类</span>
               </div>
             </div>
           </div>

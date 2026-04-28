@@ -1,5 +1,6 @@
 package com.prompt.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -16,6 +17,7 @@ public class Category {
     private Long id;
     private Long userId;
     private String name;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long parentId;
     private Integer sortOrder;
     private String icon;

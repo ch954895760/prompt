@@ -72,7 +72,11 @@ public class CategoryService {
             throw new BusinessException("分类不存在或无权限");
         }
         existing.setName(request.getName());
-        existing.setParentId(request.getParentId());
+        // 只有当明确传递了 parentId 时才更新（用于拖拽排序）
+        // 普通编辑分类时不传递 parentId，保持原有值
+        if (request.getParentId() != null) {
+            existing.setParentId(request.getParentId());
+        }
         existing.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : existing.getSortOrder());
         existing.setIcon(request.getIcon());
         existing.setColor(request.getColor() != null ? request.getColor() : existing.getColor());
@@ -103,9 +107,9 @@ public class CategoryService {
                 continue;
             }
             category.setSortOrder(item.getSortOrder());
-            if (item.getParentId() != null) {
-                category.setParentId(item.getParentId());
-            }
+            // 注意：parentId 可能为 null（顶级分类），所以需要使用包装类型判断
+            // 使用 containsKey 或判断是否为 null 都可以，这里直接设置即可
+            category.setParentId(item.getParentId());
             categoryMapper.updateById(category);
         }
     }
