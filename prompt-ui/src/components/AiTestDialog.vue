@@ -244,7 +244,7 @@ watch(() => props.modelValue, (newVal) => {
                   }"
                 >
                   <div v-if="message.role === 'assistant'" class="ai-markdown" v-html="renderMarkdown(message.content)"></div>
-                  <div v-else>{{ message.content }}</div>
+                  <div v-else class="whitespace-pre-wrap">{{ message.content }}</div>
 
                   <div v-if="message.loading" class="flex items-center gap-2 mt-2">
                     <div class="w-4 h-4 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
