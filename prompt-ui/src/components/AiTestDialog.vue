@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { X, Send, Square, Bot, User } from 'lucide-vue-next'
+import { X, Send, Square, Bot, User, Copy, Check } from 'lucide-vue-next'
 import { aiTestStream } from '@/api/setting'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
@@ -40,6 +40,33 @@ const inputMessage = ref('')
 const aiLoading = ref(false)
 const aiAbort = ref<(() => void) | null>(null)
 const messagesContainerRef = ref<HTMLDivElement | null>(null)
+const copiedMessageIndex = ref<number | null>(null)
+
+function copyMessageContent(content: string, index: number) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(content).then(() => {
+      copiedMessageIndex.value = index
+      setTimeout(() => {
+        copiedMessageIndex.value = null
+      }, 2000)
+    }).catch(() => {
+      fallbackCopy(content)
+    })
+  } else {
+    fallbackCopy(content)
+  }
+}
+
+function fallbackCopy(text: string) {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  document.body.removeChild(textarea)
+}
 
 function scrollToBottom() {
   nextTick(() => {
@@ -236,7 +263,7 @@ watch(() => props.modelValue, (newVal) => {
               <div class="flex-1 max-w-[80%]"
                 :class="message.role === 'user' ? 'text-right' : ''"
               >
-                <div class="inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed text-left"
+                <div class="inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed text-left relative group"
                   :style="{
                     background: message.role === 'user' ? 'var(--accent)' : 'var(--bg-secondary)',
                     color: message.role === 'user' ? 'white' : 'var(--text-primary)',
@@ -250,6 +277,19 @@ watch(() => props.modelValue, (newVal) => {
                     <div class="w-4 h-4 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
                     <span class="text-xs" style="color: var(--text-muted)">生成中...</span>
                   </div>
+
+                  <!-- 复制按钮 -->
+                  <button
+                    v-if="!message.loading && message.content"
+                    @click="copyMessageContent(message.content, index)"
+                    class="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-1 rounded-md text-xs"
+                    :class="message.role === 'user' ? 'right-0' : 'left-0'"
+                    style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color);"
+                  >
+                    <Check v-if="copiedMessageIndex === index" class="w-3 h-3 text-emerald-500" />
+                    <Copy v-else class="w-3 h-3" />
+                    {{ copiedMessageIndex === index ? '已复制' : '复制' }}
+                  </button>
                 </div>
               </div>
             </div>
