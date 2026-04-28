@@ -145,4 +145,7 @@ export interface PromptOptimizeResponse {
   optimizedPrompt: string
   originalPrompt: string
   fromCache?: boolean
+  optimizationTime?: number
+  modelUsed?: string
+  tokensConsumed?: number
 }

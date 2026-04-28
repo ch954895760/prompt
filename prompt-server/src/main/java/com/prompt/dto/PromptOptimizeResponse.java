@@ -18,6 +18,9 @@ public class PromptOptimizeResponse {
     private String optimizedPrompt;
     private String originalPrompt;
     private Boolean fromCache;
+    private Long optimizationTime;
+    private String modelUsed;
+    private Long tokensConsumed;
 
     @Data
     @Builder

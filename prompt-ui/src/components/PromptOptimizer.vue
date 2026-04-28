@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp, Clock, Cpu, Hash } from 'lucide-vue-next'
 import type { PromptOptimizeResponse, OptimizeSuggestion } from '@/types'
 import { optimizePrompt } from '@/api/promptOptimizer'
 
@@ -51,6 +51,18 @@ const scoreProgressWidth = computed(() => {
 const hasOptimizedContent = computed(() => {
   return !!optimizeResult.value?.optimizedPrompt?.trim()
 })
+
+const formatOptimizationTime = (ms?: number): string => {
+  if (ms === undefined || ms === null) return '-';
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+const formatTokens = (tokens?: number): string => {
+  if (tokens === undefined || tokens === null) return '-';
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`;
+  return `${tokens}`;
+}
 
 function getSuggestionIcon(type: string) {
   switch (type) {
@@ -265,6 +277,31 @@ watch(() => props.modelValue, (newVal) => {
                   ></div>
                 </div>
                 <p class="text-sm" style="color: var(--text-secondary)">{{ optimizeResult.analysis }}</p>
+
+                <!-- 统计信息 -->
+                <div class="flex items-center gap-4 mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
+                  <div class="flex items-center gap-1.5">
+                    <Clock class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                    <span class="text-xs" style="color: var(--text-muted);">耗时</span>
+                    <span class="text-xs font-medium" style="color: var(--text-primary);">
+                      {{ formatOptimizationTime(optimizeResult.optimizationTime) }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <Cpu class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                    <span class="text-xs" style="color: var(--text-muted);">模型</span>
+                    <span class="text-xs font-medium truncate max-w-[120px]" style="color: var(--text-primary);">
+                      {{ optimizeResult.modelUsed || '-' }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <Hash class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                    <span class="text-xs" style="color: var(--text-muted);">Token</span>
+                    <span class="text-xs font-medium" style="color: var(--text-primary);">
+                      {{ formatTokens(optimizeResult.tokensConsumed) }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <!-- Suggestions -->

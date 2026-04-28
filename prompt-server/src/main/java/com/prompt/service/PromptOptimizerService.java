@@ -51,11 +51,17 @@ public class PromptOptimizerService {
             log.debug("[DEBUG] Force refresh requested, skipping cache for user: {}", userId);
         }
 
+        long startTime = System.currentTimeMillis();
         AiConfig config = getAiConfig(userId, request.getProviderId());
-        String analyzeResult = callAiForAnalysis(config, request.getPromptContent());
-        PromptOptimizeResponse response = parseAnalyzeResult(analyzeResult);
+        ChatCompletionResult completionResult = callAiForAnalysis(config, request.getPromptContent());
+        long optimizationTime = System.currentTimeMillis() - startTime;
+
+        PromptOptimizeResponse response = parseAnalyzeResult(completionResult.getContent());
         response.setOriginalPrompt(request.getPromptContent());
         response.setFromCache(false);
+        response.setOptimizationTime(optimizationTime);
+        response.setModelUsed(config.model());
+        response.setTokensConsumed(completionResult.getTokensUsed());
 
         optimizeCache.put(cacheKey, response, cacheTtlMinutes, TimeUnit.MINUTES);
         return response;
@@ -115,7 +121,7 @@ public class PromptOptimizerService {
         return new AiConfig(baseUrl, apiKey, model);
     }
 
-    private String callAiForAnalysis(AiConfig config, String userPrompt) {
+    private ChatCompletionResult callAiForAnalysis(AiConfig config, String userPrompt) {
         OpenAIClient client = OpenAIOkHttpClient.builder()
                 .baseUrl(config.baseUrl())
                 .apiKey(config.apiKey())
@@ -132,15 +138,18 @@ public class PromptOptimizerService {
         }else {
             paramsBuilder.addSystemMessage(prompt);
         }
-        // 某些模型（如 o3-mini）不支持 temperature 参数
-//        if (!isTemperatureUnsupportedModel(config.model())) {
-//            paramsBuilder.temperature(0.7);
-//        }
 
         try {
             ChatCompletion completion = client.chat().completions().create(paramsBuilder.build());
-            return completion.choices().get(0).message().content()
+            String content = completion.choices().get(0).message().content()
                     .orElseThrow(() -> new BusinessException("AI 返回内容为空"));
+
+            // 获取 Token 使用量
+            Long tokensUsed = completion.usage()
+                    .map(usage -> usage.totalTokens())
+                    .orElse(null);
+
+            return new ChatCompletionResult(content, tokensUsed);
         } catch (Exception e) {
             log.error("[DEBUG] AI analysis failed: {}", e.getMessage());
             throw new BusinessException("AI 分析失败: " + e.getMessage());
@@ -322,6 +331,24 @@ public class PromptOptimizerService {
 
         String model() {
             return model;
+        }
+    }
+
+    private static class ChatCompletionResult {
+        private final String content;
+        private final Long tokensUsed;
+
+        ChatCompletionResult(String content, Long tokensUsed) {
+            this.content = content;
+            this.tokensUsed = tokensUsed;
+        }
+
+        String getContent() {
+            return content;
+        }
+
+        Long getTokensUsed() {
+            return tokensUsed;
         }
     }
 }
