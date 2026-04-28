@@ -323,9 +323,28 @@ function handleCopy() {
   const text = content.value.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
     return variableValues.value[varName] || match
   })
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('已复制到剪贴板')
-  })
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已复制到剪贴板')
+    }).catch(() => {
+      showToast('复制失败，请手动复制')
+    })
+  } else {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    const success = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    if (success) {
+      showToast('已复制到剪贴板')
+    } else {
+      showToast('复制失败，请手动复制')
+    }
+  }
 }
 
 function handleTest() {
