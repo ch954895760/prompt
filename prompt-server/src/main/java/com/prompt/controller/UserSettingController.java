@@ -23,8 +23,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
@@ -35,6 +39,20 @@ public class UserSettingController {
     private final UserSettingService userSettingService;
     private final AiProviderService aiProviderService;
     private final AesUtil aesUtil;
+
+    private ExecutorService sseExecutor;
+
+    @PostConstruct
+    public void init() {
+        sseExecutor = Executors.newCachedThreadPool();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (sseExecutor != null) {
+            sseExecutor.shutdown();
+        }
+    }
 
     private Long getCurrentUserId(Authentication authentication) {
         return Long.valueOf(authentication.getName());
@@ -139,6 +157,10 @@ public class UserSettingController {
 
         SseEmitter emitter = new SseEmitter(300_000L);
 
+        emitter.onCompletion(() -> log.debug("SSE connection completed"));
+        emitter.onTimeout(() -> log.debug("SSE connection timeout"));
+        emitter.onError((e) -> log.debug("SSE connection error: {}", e.getMessage()));
+
         Runnable task = () -> {
             try (StreamResponse<ChatCompletionChunk> streamResponse = client.chat().completions().createStreaming(params)) {
                 streamResponse.stream().forEach(chunk -> {
@@ -149,28 +171,34 @@ public class UserSettingController {
                                 payload.put("content", text);
                                 emitter.send(SseEmitter.event().name("message").data(payload));
                             } catch (Exception e) {
-                                log.error("[DEBUG] SSE send failed: {}", e.getMessage());
+                                throw new RuntimeException("SSE_CLOSED");
                             }
                         });
                     });
                 });
                 emitter.send(SseEmitter.event().name("done").data("[DONE]"));
                 emitter.complete();
+            } catch (RuntimeException e) {
+                if ("SSE_CLOSED".equals(e.getMessage())) {
+                    log.debug("SSE connection closed by client");
+                } else {
+                    throw e;
+                }
             } catch (Exception e) {
-                log.error("[DEBUG] AI test stream failed: {}", e.getMessage());
+                log.error("AI test stream failed: {}", e.getMessage());
                 try {
                     Map<String, String> errorPayload = new HashMap<>();
                     errorPayload.put("error", e.getMessage());
                     emitter.send(SseEmitter.event().name("error").data(errorPayload));
                     emitter.complete();
                 } catch (Exception ex) {
-                    log.error("[DEBUG] Failed to send error event: {}", ex.getMessage());
+                    log.debug("Failed to send error event: {}", ex.getMessage());
                     emitter.completeWithError(ex);
                 }
             }
         };
 
-        new Thread(new DelegatingSecurityContextRunnable(task)).start();
+        sseExecutor.execute(new DelegatingSecurityContextRunnable(task));
 
         return emitter;
     }
