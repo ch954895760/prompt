@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { debounce } from '@/utils/debounce'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import {
@@ -47,11 +48,19 @@ function confirmLogout() {
   router.push('/login')
 }
 
-function handleSearch() {
+const handleSearch = debounce(() => {
   if (searchQuery.value.trim()) {
     router.push({ path: '/prompts', query: { q: searchQuery.value } })
+  } else {
+    // 如果搜索框为空，清除查询参数
+    router.push({ path: '/prompts' })
   }
-}
+}, 300)
+
+// 监听搜索输入变化，实时查询
+watch(searchQuery, () => {
+  handleSearch()
+})
 
 const currentRoute = computed(() => route.path)
 const navItems = [
@@ -166,7 +175,6 @@ watch(() => route.query.q, (q) => {
             class="w-full pl-10 pr-4 py-2 rounded-xl text-sm transition-all"
             style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
             placeholder="搜索提示词、标签、内容..."
-            @keyup.enter="handleSearch"
             @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
             @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
           >
