@@ -54,6 +54,7 @@ public class PromptOptimizerService {
         long startTime = System.currentTimeMillis();
         AiConfig config = getAiConfig(userId, request.getProviderId());
         ChatCompletionResult completionResult = callAiForAnalysis(config, request.getPromptContent());
+        System.out.println("completionResult.getContent() = " + completionResult.getContent());
         long optimizationTime = System.currentTimeMillis() - startTime;
 
         PromptOptimizeResponse response = parseAnalyzeResult(completionResult.getContent());
@@ -128,6 +129,7 @@ public class PromptOptimizerService {
                 .build();
 
         String prompt = buildOptimizePrompt(userPrompt);
+        System.out.println("prompt = " + prompt);
         String model = config.model();
 
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
@@ -156,18 +158,11 @@ public class PromptOptimizerService {
         }
     }
 
-    private boolean isTemperatureUnsupportedModel(String model) {
-        if (model == null) return false;
-        String lowerModel = model.toLowerCase();
-        // o3 系列模型不支持 temperature
-        return lowerModel.contains("o3-") || lowerModel.startsWith("o3");
-    }
-
     private String buildOptimizePrompt(String userPrompt) {
         return String.format(
-            "你是一位专业的提示词工程师。请分析以下提示词并提供优化建议。\n\n" +
-            "需要分析的提示词：\n%s\n\n" +
-            "请按以下JSON格式返回结果（只返回JSON，不要其他内容）：\n" +
+            "[角色定义]：你是一位专业的提示词工程师。请分析以下提示词并提供优化建议。\n\n" +
+            "[原提示词]：需要分析的提示词如下：\n%s\n\n" +
+            "[格式要求]：请按以下JSON格式返回结果（只返回JSON，不要其他内容）：\n" +
             "{\n" +
             "  \"score\": 1-10的质量评分,\n" +
             "  \"analysis\": \"整体分析评价，100字以内\",\n" +
@@ -181,7 +176,7 @@ public class PromptOptimizerService {
             "  ],\n" +
             "  \"optimizedPrompt\": \"优化后的完整提示词\"\n" +
             "}\n\n" +
-            "评分标准：\n" +
+            "[输出格式解释]：评分标准：\n" +
             "- 10分：完美的提示词，包含角色设定、上下文、输出格式、示例\n" +
             "- 7-9分：良好的提示词，有清晰的指令但缺少某些要素\n" +
             "- 4-6分：一般的提示词，指令模糊或结构混乱\n" +
