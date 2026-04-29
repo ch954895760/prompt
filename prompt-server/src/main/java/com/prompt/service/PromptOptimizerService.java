@@ -174,7 +174,7 @@ public class PromptOptimizerService {
             "      \"priority\": \"high|medium|low\"\n" +
             "    }\n" +
             "  ],\n" +
-            "  \"optimizedPrompt\": \"优化后的完整提示词\"\n" +
+            "  \"optimizedPrompt\": \"优化后的完整提示词（供人类直接使用，不要包含JSON格式要求、代码审查维度等系统内部格式）\"\n" +
             "}\n\n" +
             "[输出格式解释]：评分标准：\n" +
             "- 10分：完美的提示词，包含角色设定、上下文、输出格式、示例\n" +
@@ -188,7 +188,8 @@ public class PromptOptimizerService {
             "优先级说明：\n" +
             "- high: 重要建议，强烈建议采纳\n" +
             "- medium: 一般建议，推荐采纳\n" +
-            "- low: 可选建议，可根据需要采纳",
+            "- low: 可选建议，可根据需要采纳\n" +
+            "[重要]:输出的optimizedPrompt中，不要建议返回json格式，因为这是提供给人类直接使用的提示词]",
             escapeJson(userPrompt));
     }
 
