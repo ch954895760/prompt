@@ -96,7 +96,7 @@ export default {
   login: {
     title: 'Prompt Vault',
     subtitle: '你的私人提示词库与创作工作台',
-    emailPlaceholder: '请输入邮箱，例如you@example.com',
+    emailPlaceholder: '请输入邮箱',
     passwordPlaceholder: '请输入密码',
     usernamePlaceholder: '请输入用户名',
     confirmPasswordPlaceholder: '请确认密码',
@@ -370,6 +370,9 @@ export default {
     inputPlaceholder: '输入消息与 AI 对话...',
     sendHint: '按 Enter 发送，Shift + Enter 换行',
     user: '用户',
+    exportMarkdown: '导出为 Markdown',
+    exportSuccess: '导出成功',
+    noMessagesToExport: '没有可导出的消息',
   },
   optimizer: {
     title: '提示词优化助手',

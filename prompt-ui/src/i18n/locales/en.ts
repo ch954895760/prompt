@@ -96,7 +96,7 @@ export default {
   login: {
     title: 'Prompt Vault',
     subtitle: 'Your private prompt library and creative workspace',
-    emailPlaceholder: 'Enter email, e.g., you@example.com',
+    emailPlaceholder: 'Enter email, e.g.',
     passwordPlaceholder: 'Enter password',
     usernamePlaceholder: 'Enter username',
     confirmPasswordPlaceholder: 'Confirm password',
@@ -370,6 +370,9 @@ export default {
     inputPlaceholder: 'Type a message to chat with AI...',
     sendHint: 'Press Enter to send, Shift + Enter for new line',
     user: 'User',
+    exportMarkdown: 'Export as Markdown',
+    exportSuccess: 'Export successful',
+    noMessagesToExport: 'No messages to export',
   },
   optimizer: {
     title: 'Prompt Optimizer',

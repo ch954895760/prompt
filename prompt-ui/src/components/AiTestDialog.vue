@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { X, Send, Square, Bot, User, Copy, Check } from 'lucide-vue-next'
+import { X, Send, Square, Bot, User, Copy, Check, Download } from 'lucide-vue-next'
 import { aiTestStream } from '@/api/setting'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { useI18n } from 'vue-i18n'
+import { useToastStore } from '@/stores/toast'
 
 const { t } = useI18n()
+const toastStore = useToastStore()
 
 marked.use({
   renderer: {
@@ -69,6 +71,41 @@ function fallbackCopy(text: string) {
   textarea.select()
   document.execCommand('copy')
   document.body.removeChild(textarea)
+}
+
+// 导出聊天记录为Markdown
+function exportToMarkdown() {
+  if (messages.value.length === 0) {
+    toastStore.warning(t('ai.noMessagesToExport'))
+    return
+  }
+
+  const now = new Date().toLocaleString()
+  let markdown = `# ${t('ai.testDialogTitle')}\n\n`
+  markdown += `**${t('common.export')}**: ${now}\n\n`
+  markdown += `---\n\n`
+
+  for (const message of messages.value) {
+    if (message.loading) continue
+    
+    const role = message.role === 'user' ? t('ai.user') : 'AI'
+    markdown += `## ${role}\n\n`
+    markdown += `${message.content}\n\n`
+    markdown += `---\n\n`
+  }
+
+  // 创建并下载文件
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `ai-chat-${new Date().toISOString().slice(0, 10)}.md`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+
+  toastStore.success(t('ai.exportSuccess'))
 }
 
 function scrollToBottom() {
@@ -232,14 +269,27 @@ watch(() => props.modelValue, (newVal) => {
                 <p class="text-xs" style="color: var(--text-muted)">{{ t('ai.testDialogSubtitle') }}</p>
               </div>
             </div>
-            <button @click="close"
-              class="p-2 rounded-lg transition-colors"
-              style="color: var(--text-muted);"
-              @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
-              @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
-            >
-              <X class="w-5 h-5" />
-            </button>
+            <div class="flex items-center gap-2">
+              <!-- 导出按钮 -->
+              <button
+                v-if="messages.length > 0"
+                @click="exportToMarkdown"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                style="color: var(--accent); background: var(--accent-soft);"
+                :title="t('ai.exportMarkdown')"
+              >
+                <Download class="w-3.5 h-3.5" />
+                {{ t('common.export') }}
+              </button>
+              <button @click="close"
+                class="p-2 rounded-lg transition-colors"
+                style="color: var(--text-muted);"
+                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+              >
+                <X class="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div ref="messagesContainerRef" class="flex-1 overflow-y-auto p-5 space-y-4">

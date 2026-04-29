@@ -252,6 +252,16 @@ watch(() => route.query.q, (q) => {
         </div>
 
         <div class="flex items-center gap-2 ml-auto">
+          <!-- Language Switch Button -->
+          <button @click="handleToggleLocale"
+            class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+            style="color: var(--text-secondary)"
+            :title="t('language.toggle')"
+            @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+            @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+          >
+            <Languages class="w-4 h-4" />
+          </button>
           <ThemeTransition :current-theme="userStore.theme" @toggle="toggleTheme">
             <template #default="{ trigger }">
               <button @click="trigger"
@@ -266,16 +276,6 @@ watch(() => route.query.q, (q) => {
               </button>
             </template>
           </ThemeTransition>
-          <!-- Language Switch Button -->
-          <button @click="handleToggleLocale"
-            class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-            style="color: var(--text-secondary)"
-            :title="t('language.toggle')"
-            @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
-            @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
-          >
-            <Languages class="w-4 h-4" />
-          </button>
           <!-- <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors relative"
             style="color: var(--text-secondary)"
             @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
