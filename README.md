@@ -48,6 +48,7 @@
 - 分类体系 — 多级嵌套分类，树形结构展示
 - 标签系统 — 自由打标，灵活筛选
 - 变量模板 — 动态占位符，一键替换
+- AI 提示词优化 — 智能优化提示词表达，提升输出质量
 - AI 集成测试 — 支持主流 AI 模型在线调试
 - 云端同步 — 多设备数据同步
 - 暗黑模式 — 支持浅色/深色主题切换
@@ -80,8 +81,8 @@
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/yourusername/prompt-vault.git
-cd prompt-vault
+git clone https://github.com/ch954895760/prompt.git
+cd prompt
 ```
 
 ### 2. 初始化数据库
