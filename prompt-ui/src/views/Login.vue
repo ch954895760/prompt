@@ -195,7 +195,7 @@ async function handleRegister() {
     </div>
 
     <!-- Theme toggle -->
-    <button @click="toggleTheme" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
+    <button @click="toggleTheme" aria-label="切换主题" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
       <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
       <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
     </button>
@@ -275,9 +275,10 @@ async function handleRegister() {
                 >
                 <!-- 显示密码按钮和验证状态 -->
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <button 
+                  <button
                     type="button"
                     @click="showLoginPassword = !showLoginPassword"
+                    :aria-label="showLoginPassword ? '隐藏密码' : '显示密码'"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
@@ -389,9 +390,10 @@ async function handleRegister() {
                   @blur="handleRegisterBlur('password')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <button 
+                  <button
                     type="button"
                     @click="showRegisterPassword = !showRegisterPassword"
+                    :aria-label="showRegisterPassword ? '隐藏密码' : '显示密码'"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
@@ -446,9 +448,10 @@ async function handleRegister() {
                   @blur="handleRegisterBlur('confirmPassword')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <button 
+                  <button
                     type="button"
                     @click="showConfirmPassword = !showConfirmPassword"
+                    :aria-label="showConfirmPassword ? '隐藏确认密码' : '显示确认密码'"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
