@@ -77,6 +77,7 @@ export default {
     loginFailed: 'Login failed',
     registerSuccess: 'Registration successful',
     registerFailed: 'Registration failed',
+    user: 'User',
   },
   theme: {
     toggle: 'Toggle Theme',
@@ -275,6 +276,9 @@ export default {
     theme: 'Theme',
     profile: 'Profile',
     appearance: 'Appearance',
+    username: 'Username',
+    email: 'Email',
+    changePassword: 'Change Password',
     saveSuccess: 'Settings saved',
     saveFailed: 'Save failed',
     avatarSuccess: 'Avatar updated successfully',

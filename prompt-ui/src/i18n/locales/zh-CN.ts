@@ -77,6 +77,7 @@ export default {
     loginFailed: '登录失败',
     registerSuccess: '注册成功',
     registerFailed: '注册失败',
+    user: '用户',
   },
   theme: {
     toggle: '切换主题',
@@ -275,6 +276,9 @@ export default {
     theme: '主题',
     profile: '个人信息',
     appearance: '外观',
+    username: '用户名',
+    email: '邮箱',
+    changePassword: '修改密码',
     saveSuccess: '设置已保存',
     saveFailed: '保存失败',
     avatarSuccess: '头像更新成功',
