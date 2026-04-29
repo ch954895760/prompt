@@ -709,6 +709,7 @@ onMounted(() => {
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 :placeholder="t('settings.currentPasswordPlaceholder')"
+                autocomplete="current-password"
               >
               <button @click="showCurrentPassword = !showCurrentPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -727,6 +728,7 @@ onMounted(() => {
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 :placeholder="t('settings.newPasswordPlaceholder')"
+                autocomplete="new-password"
               >
               <button @click="showNewPassword = !showNewPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -745,6 +747,7 @@ onMounted(() => {
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                 :placeholder="t('settings.confirmPasswordPlaceholder')"
+                autocomplete="new-password"
               >
               <button @click="showConfirmPassword = !showConfirmPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"

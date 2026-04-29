@@ -246,6 +246,9 @@ watch(() => route.query.q, (q) => {
             class="w-full pl-10 pr-4 py-2 rounded-xl text-sm transition-all"
             style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
             :placeholder="t('common.search')"
+            autocomplete="off"
+            readonly
+            onfocus="this.removeAttribute('readonly')"
             @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
             @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
           >
