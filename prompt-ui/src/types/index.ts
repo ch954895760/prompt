@@ -19,6 +19,8 @@ export interface Prompt {
   tagIds?: number[]
   isPublic: boolean
   usageCount: number
+  qualityScore?: number
+  scoreUpdatedAt?: string
   tags: Tag[]
   createdAt: string
   updatedAt: string

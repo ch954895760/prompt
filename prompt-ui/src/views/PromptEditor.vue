@@ -8,13 +8,13 @@ import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import type { Category, Tag, Prompt } from '@/types'
-import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square, Sparkles, Eye } from 'lucide-vue-next'
+import { Save, Play, Copy, Trash2, X, History, RotateCcw, Square, Sparkles, Eye, Star } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import VariableInput from '@/components/VariableInput.vue'
 import AiTestDialog from '@/components/AiTestDialog.vue'
 import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 import PromptOptimizer from '@/components/PromptOptimizer.vue'
-import { getPromptHistory, rollbackPrompt } from '@/api/prompt'
+import { getPromptHistory, rollbackPrompt, updatePromptScore } from '@/api/prompt'
 import { aiTestStream } from '@/api/setting'
 import { getAiProviders, getDefaultAiProvider } from '@/api/aiProvider'
 import type { AiProvider } from '@/types'
@@ -69,6 +69,7 @@ const aiProviders = ref<AiProvider[]>([])
 const selectedAiProvider = ref<number | null>(null)
 const showAiTestDialog = ref(false)
 const showOptimizer = ref(false)
+const currentPromptScore = ref<number | undefined>(undefined)
 
 function scrollAiToBottom() {
   nextTick(() => {
@@ -284,6 +285,7 @@ async function loadPrompt() {
     description.value = p.description || ''
     categoryId.value = p.categoryId || null
     selectedTagIds.value = p.tags?.map(t => t.id) || []
+    currentPromptScore.value = p.qualityScore
     if (p.variablesJson) {
       variableValues.value = typeof p.variablesJson === 'string' ? JSON.parse(p.variablesJson) : p.variablesJson
     }
@@ -364,6 +366,32 @@ function handleStopTest() {
     aiAbort.value = null
   }
   aiLoading.value = false
+}
+
+async function handleSaveScore(score: number) {
+  if (!isEdit.value) {
+    toastStore.warning(t('prompt.savePromptFirst'))
+    return
+  }
+  try {
+    await updatePromptScore(promptId.value, score)
+    currentPromptScore.value = score
+    toastStore.success(t('prompt.scoreSaved'))
+  } catch (e: any) {
+    toastStore.error(e.message || t('prompt.scoreSaveFailed'))
+  }
+}
+
+function getScoreColor(score: number) {
+  if (score >= 8) return '#22c55e'
+  if (score >= 5) return '#f59e0b'
+  return '#ef4444'
+}
+
+function getScoreBgColor(score: number) {
+  if (score >= 8) return 'rgba(34, 197, 94, 0.1)'
+  if (score >= 5) return 'rgba(245, 158, 11, 0.1)'
+  return 'rgba(239, 68, 68, 0.1)'
 }
 
 // 过滤后的标签列表（搜索功能）
@@ -562,13 +590,24 @@ onUnmounted(() => {
   <MainLayout>
     <div class="animate-fade-in">
       <div class="flex items-center justify-between mb-6">
-        <div>
-          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
-            {{ isEdit ? t('prompt.editPrompt') : t('prompt.createPrompt') }}
-          </h2>
-          <p class="text-sm" style="color: var(--text-secondary)">
-            {{ isEdit ? t('prompt.updatePrompt') : t('prompt.createPromptDesc') }}
-          </p>
+        <div class="flex items-center gap-4">
+          <div>
+            <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
+              {{ isEdit ? t('prompt.editPrompt') : t('prompt.createPrompt') }}
+            </h2>
+            <p class="text-sm" style="color: var(--text-secondary)">
+              {{ isEdit ? t('prompt.updatePrompt') : t('prompt.createPromptDesc') }}
+            </p>
+          </div>
+          <!-- 评分展示 -->
+          <div
+            v-if="currentPromptScore !== undefined && currentPromptScore !== null"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+            :style="{ background: getScoreBgColor(currentPromptScore), color: getScoreColor(currentPromptScore) }"
+          >
+            <Star class="w-4 h-4" />
+            <span>{{ currentPromptScore }}/10</span>
+          </div>
         </div>
         <div class="flex items-center gap-2">
           <button v-if="isEdit" @click="showHistory = !showHistory"
@@ -936,7 +975,9 @@ onUnmounted(() => {
       v-model="showOptimizer"
       :current-prompt="content"
       :provider-id="selectedAiProvider"
+      :prompt-id="promptId"
       @apply="(optimized) => content = optimized"
+      @save-score="handleSaveScore"
     />
 
   </MainLayout>

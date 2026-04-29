@@ -193,6 +193,21 @@ public class PromptService {
         saveHistory(prompt);
     }
 
+    @Transactional
+    public Prompt updateScore(Long id, Long userId, Integer score) {
+        Prompt prompt = promptMapper.selectById(id);
+        if (prompt == null || !prompt.getUserId().equals(userId)) {
+            throw new BusinessException("提示词不存在或无权限");
+        }
+        if (score < 1 || score > 10) {
+            throw new BusinessException("评分必须在1-10之间");
+        }
+        prompt.setQualityScore(score);
+        prompt.setScoreUpdatedAt(java.time.LocalDateTime.now());
+        promptMapper.updateById(prompt);
+        return prompt;
+    }
+
     public String exportToJson(List<Prompt> prompts) {
         try {
             return objectMapper.writeValueAsString(prompts);

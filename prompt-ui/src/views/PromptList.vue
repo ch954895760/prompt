@@ -8,7 +8,7 @@ import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, 
 import { getCategoryTree } from '@/api/category'
 import { getTags } from '@/api/tag'
 import type { Prompt, Category, Tag } from '@/types'
-import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload, FileText } from 'lucide-vue-next'
+import { Plus, LayoutGrid, List, Copy, Pencil, Trash2, Download, Upload, FileText, Star } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 
@@ -166,6 +166,18 @@ const importFile = ref<HTMLInputElement | null>(null)
 
 function getPreview(content: string): string {
   return content.substring(0, 80).replace(/\{\{(\w+)\}\}/g, '<span style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{$1}}</span>') + '...'
+}
+
+function getScoreColor(score: number) {
+  if (score >= 8) return '#22c55e'
+  if (score >= 5) return '#f59e0b'
+  return '#ef4444'
+}
+
+function getScoreBgColor(score: number) {
+  if (score >= 8) return 'rgba(34, 197, 94, 0.1)'
+  if (score >= 5) return 'rgba(245, 158, 11, 0.1)'
+  return 'rgba(239, 68, 68, 0.1)'
 }
 
 async function handleExportJson() {
@@ -384,21 +396,32 @@ onUnmounted(() => {
               <div class="w-2.5 h-2.5 rounded-full" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
               <span class="text-[10px] font-medium uppercase tracking-wider" style="color: var(--text-muted)">{{ p.categoryName || t('prompt.uncategorized') }}</span>
             </div>
-            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button @click="goToEditor(p.id)"
-                class="p-1.5 rounded-lg transition-colors"
-                style="color: var(--text-muted);"
-                @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
-                @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+            <div class="flex items-center gap-2">
+              <!-- 评分展示 -->
+              <div
+                v-if="p.qualityScore !== undefined && p.qualityScore !== null"
+                class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium"
+                :style="{ background: getScoreBgColor(p.qualityScore), color: getScoreColor(p.qualityScore) }"
               >
-                <Pencil class="w-3.5 h-3.5" />
-              </button>
-              <button @click="handleDelete(p.id, p.title)"
-                class="p-1.5 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
-                style="color: var(--text-muted);"
-              >
-                <Trash2 class="w-3.5 h-3.5 hover:text-red-500" />
-              </button>
+                <Star class="w-3 h-3" />
+                <span>{{ p.qualityScore }}</span>
+              </div>
+              <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button @click="goToEditor(p.id)"
+                  class="p-1.5 rounded-lg transition-colors"
+                  style="color: var(--text-muted);"
+                  @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+                  @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+                >
+                  <Pencil class="w-3.5 h-3.5" />
+                </button>
+                <button @click="handleDelete(p.id, p.title)"
+                  class="p-1.5 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
+                  style="color: var(--text-muted);"
+                >
+                  <Trash2 class="w-3.5 h-3.5 hover:text-red-500" />
+                </button>
+              </div>
             </div>
           </div>
           <h3 class="font-semibold mb-2 text-base" style="color: var(--text-primary)">{{ p.title }}</h3>
@@ -431,7 +454,18 @@ onUnmounted(() => {
         >
           <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
           <div class="flex-1 min-w-0">
-            <h3 class="font-semibold text-sm mb-0.5 truncate" style="color: var(--text-primary)">{{ p.title }}</h3>
+            <div class="flex items-center gap-2 mb-0.5">
+              <h3 class="font-semibold text-sm truncate" style="color: var(--text-primary)">{{ p.title }}</h3>
+              <!-- 评分展示 -->
+              <div
+                v-if="p.qualityScore !== undefined && p.qualityScore !== null"
+                class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                :style="{ background: getScoreBgColor(p.qualityScore), color: getScoreColor(p.qualityScore) }"
+              >
+                <Star class="w-2.5 h-2.5" />
+                <span>{{ p.qualityScore }}</span>
+              </div>
+            </div>
             <p class="text-xs truncate" style="color: var(--text-secondary)">{{ p.content.substring(0, 60) }}...</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">

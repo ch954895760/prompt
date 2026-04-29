@@ -49,10 +49,13 @@ CREATE TABLE IF NOT EXISTS prompt (
     variables_json JSON,
     is_public TINYINT DEFAULT 0,
     usage_count INT DEFAULT 0,
+    quality_score INT DEFAULT NULL COMMENT 'AI优化评分(1-10)',
+    score_updated_at DATETIME DEFAULT NULL COMMENT '评分更新时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
-    INDEX idx_category_id (category_id)
+    INDEX idx_category_id (category_id),
+    INDEX idx_quality_score (quality_score)
 );
 
 -- 提示词-标签关联表

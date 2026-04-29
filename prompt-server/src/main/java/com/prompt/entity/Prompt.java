@@ -22,6 +22,8 @@ public class Prompt {
     private String variablesJson;
     private Boolean isPublic;
     private Integer usageCount;
+    private Integer qualityScore;
+    private LocalDateTime scoreUpdatedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -52,3 +52,7 @@ export function getPromptHistory(id: number): Promise<{ id: number; promptId: nu
 export function rollbackPrompt(id: number, version: number): Promise<void> {
   return request.post(`/prompts/${id}/history/${version}/rollback`)
 }
+
+export function updatePromptScore(id: number, score: number): Promise<Prompt> {
+  return request.put(`/prompts/${id}/score`, { score })
+}

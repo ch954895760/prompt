@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp, Clock, Cpu, Hash } from 'lucide-vue-next'
+import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp, Clock, Cpu, Hash, Save } from 'lucide-vue-next'
 import type { PromptOptimizeResponse, OptimizeSuggestion } from '@/types'
 import { optimizePrompt } from '@/api/promptOptimizer'
 import { useI18n } from 'vue-i18n'
@@ -11,11 +11,13 @@ const props = defineProps<{
   modelValue: boolean
   currentPrompt: string
   providerId?: number | null
+  promptId?: number | null
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   'apply': [optimizedPrompt: string]
+  'saveScore': [score: number]
 }>()
 
 const loading = ref(false)
@@ -174,6 +176,12 @@ function applyOptimization() {
   }
 }
 
+function saveScore() {
+  if (optimizeResult.value?.score !== undefined) {
+    emit('saveScore', optimizeResult.value.score)
+  }
+}
+
 function close() {
   emit('update:modelValue', false)
   optimizeResult.value = null
@@ -307,29 +315,42 @@ watch(() => props.modelValue, (newVal) => {
                 </div>
                 <p class="text-sm" style="color: var(--text-secondary)">{{ optimizeResult.analysis }}</p>
 
-                <!-- 统计信息 -->
-                <div class="flex items-center gap-4 mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
-                  <div class="flex items-center gap-1.5">
-                    <Clock class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.timeSpent') }}</span>
-                    <span class="text-xs font-medium" style="color: var(--text-primary);">
-                      {{ formatOptimizationTime(optimizeResult.optimizationTime) }}
-                    </span>
+                <!-- 统计信息和保存评分按钮 -->
+                <div class="flex items-center justify-between mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
+                  <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5">
+                      <Clock class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                      <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.timeSpent') }}</span>
+                      <span class="text-xs font-medium" style="color: var(--text-primary);">
+                        {{ formatOptimizationTime(optimizeResult.optimizationTime) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <Cpu class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                      <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.model') }}</span>
+                      <span class="text-xs font-medium truncate max-w-[120px]" style="color: var(--text-primary);">
+                        {{ optimizeResult.modelUsed || '-' }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <Hash class="w-3.5 h-3.5" style="color: var(--text-muted);" />
+                      <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.token') }}</span>
+                      <span class="text-xs font-medium" style="color: var(--text-primary);">
+                        {{ formatTokens(optimizeResult.tokensConsumed) }}
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-1.5">
-                    <Cpu class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.model') }}</span>
-                    <span class="text-xs font-medium truncate max-w-[120px]" style="color: var(--text-primary);">
-                      {{ optimizeResult.modelUsed || '-' }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <Hash class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.token') }}</span>
-                    <span class="text-xs font-medium" style="color: var(--text-primary);">
-                      {{ formatTokens(optimizeResult.tokensConsumed) }}
-                    </span>
-                  </div>
+                  <!-- 保存评分按钮 -->
+                  <button
+                    v-if="promptId"
+                    @click="saveScore"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:opacity-80"
+                    style="background: var(--accent); color: white;"
+                    :title="t('optimizer.saveScore')"
+                  >
+                    <Save class="w-3.5 h-3.5" />
+                    {{ t('optimizer.saveScore') }}
+                  </button>
                 </div>
               </div>
 

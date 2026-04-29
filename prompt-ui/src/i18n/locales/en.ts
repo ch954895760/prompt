@@ -197,6 +197,9 @@ export default {
     usedCount: 'Used {count} times',
     deleted: 'Deleted "{title}"',
     copied: 'Copied "{title}"',
+    savePromptFirst: 'Please save the prompt first',
+    scoreSaved: 'Score saved',
+    scoreSaveFailed: 'Failed to save score',
   },
   category: {
     name: 'Category Name',
@@ -411,5 +414,6 @@ export default {
     clickToAnalyze: 'Click the button below, AI will analyze your prompt and provide optimization suggestions',
     startAnalysis: 'Start Analysis',
     applyOptimization: 'Apply Optimization',
+    saveScore: 'Save Score',
   },
 }

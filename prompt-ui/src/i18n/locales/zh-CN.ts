@@ -197,6 +197,9 @@ export default {
     usedCount: '已使用 {count} 次',
     deleted: '已删除 "{title}"',
     copied: '已复制 "{title}"',
+    savePromptFirst: '请先保存提示词',
+    scoreSaved: '评分已保存',
+    scoreSaveFailed: '评分保存失败',
   },
   category: {
     name: '分类名称',
@@ -411,5 +414,6 @@ export default {
     clickToAnalyze: '点击下方按钮，AI 将分析您的提示词并提供优化建议',
     startAnalysis: '开始分析',
     applyOptimization: '应用优化',
+    saveScore: '保存评分',
   },
 }

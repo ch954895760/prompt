@@ -2,6 +2,7 @@ package com.prompt.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.prompt.dto.PromptCreateRequest;
+import com.prompt.dto.PromptScoreUpdateRequest;
 import com.prompt.entity.Prompt;
 import com.prompt.service.PromptService;
 import com.prompt.service.PromptUsageLogService;
@@ -129,6 +130,11 @@ public class PromptController {
         Long userId = getCurrentUserId(authentication);
         int count = promptService.importFromJson(data, userId);
         return Result.success(count);
+    }
+
+    @PutMapping("/{id}/score")
+    public Result<Prompt> updateScore(@PathVariable Long id, @Valid @RequestBody PromptScoreUpdateRequest request, Authentication authentication) {
+        return Result.success(promptService.updateScore(id, getCurrentUserId(authentication), request.getScore()));
     }
 }
 
