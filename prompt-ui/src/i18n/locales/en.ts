@@ -170,7 +170,7 @@ export default {
     titlePlaceholder: 'Give your prompt a name...',
     contentPlaceholder: 'Enter your prompt template here...',
     tagPlaceholder: 'Search or create tag',
-    variableTip: 'Use {{variableName}} to insert variables',
+    variableTip: "Use {'{{'}variableName{'}}'} to insert variables",
     fillVariables: 'Fill variable values',
     variableInputPlaceholder: 'Enter {name}...',
     aiOptimize: 'AI Optimize',

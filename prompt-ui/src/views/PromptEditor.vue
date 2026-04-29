@@ -702,7 +702,7 @@ onUnmounted(() => {
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-medium" style="color: var(--text-secondary)">{{ t('prompt.content') }}</label>
+              <label class="block text-xs font-medium" style="color: var(--text-secondary)">{{ t('prompt.promptContent') }}</label>
               <div class="flex items-center gap-2">
                 <button @click="showOptimizer = true"
                   class="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all hover:opacity-80"

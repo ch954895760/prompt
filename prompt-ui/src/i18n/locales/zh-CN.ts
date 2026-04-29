@@ -170,7 +170,7 @@ export default {
     titlePlaceholder: '给你的提示词起个名字...',
     contentPlaceholder: '在这里输入你的提示词模板...',
     tagPlaceholder: '搜索或新建标签',
-    variableTip: '使用 {{变量名}} 插入变量',
+    variableTip: "使用 {'{{'}变量名{'}}'} 插入变量",
     fillVariables: '填写变量值',
     variableInputPlaceholder: '输入 {name}...',
     aiOptimize: 'AI优化',
