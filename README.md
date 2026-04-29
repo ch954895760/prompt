@@ -21,24 +21,25 @@
 
 > 以下截图将在发布后替换为真实页面截图
 
-<table>
-  <tr>
-    <td><img src="./doc/screenshots/placeholder-dashboard.png" alt="仪表盘" width="100%"></td>
-    <td><img src="./doc/screenshots/placeholder-prompt-editor.png" alt="提示词编辑" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center">仪表盘</td>
-    <td align="center">提示词编辑器</td>
-  </tr>
-  <tr>
-    <td><img src="./doc/screenshots/placeholder-category.png" alt="分类管理" width="100%"></td>
-    <td><img src="./doc/screenshots/placeholder-ai-test.png" alt="AI 测试" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center">分类管理</td>
-    <td align="center">AI 测试</td>
-  </tr>
-</table>
+<p align="center">
+  <img src="./doc/screenshots/placeholder-dashboard.png" alt="仪表盘" width="80%">
+</p>
+<p align="center">仪表盘</p>
+
+<p align="center">
+  <img src="./doc/screenshots/placeholder-prompt-editor.png" alt="提示词编辑" width="80%">
+</p>
+<p align="center">提示词编辑器</p>
+
+<p align="center">
+  <img src="./doc/screenshots/placeholder-category.png" alt="分类管理" width="80%">
+</p>
+<p align="center">分类管理</p>
+
+<p align="center">
+  <img src="./doc/screenshots/placeholder-ai-test.png" alt="AI 测试" width="80%">
+</p>
+<p align="center">AI 测试</p>
 
 ---
 
