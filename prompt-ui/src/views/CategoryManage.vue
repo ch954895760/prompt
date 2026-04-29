@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import CategoryNode from '@/components/CategoryNode.vue'
 import { getCategoryTree, createCategory, updateCategory, deleteCategory, updateCategorySort, type SortItem } from '@/api/category'
 import type { Category } from '@/types'
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, GripVertical } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+
+const toastStore = useToastStore()
 
 const categories = ref<Category[]>([])
 const loading = ref(false)
@@ -56,7 +59,7 @@ function openEditModal(cat: Category) {
 
 async function handleSubmit() {
   if (!form.value.name.trim()) {
-    showToast('请输入分类名称')
+    toastStore.warning('请输入分类名称')
     return
   }
   try {
@@ -66,15 +69,15 @@ async function handleSubmit() {
     }
     if (modalMode.value === 'edit' && editingId.value) {
       await updateCategory(editingId.value, data)
-      showToast('分类已更新')
+      toastStore.success('分类已更新')
     } else {
       await createCategory(data)
-      showToast('分类已创建')
+      toastStore.success('分类已创建')
     }
     showModal.value = false
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '操作失败')
+    toastStore.error(e.message || '操作失败')
   }
 }
 
@@ -90,10 +93,10 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
     await deleteCategory(deleteTarget.value.id)
-    showToast(`"${deleteTarget.value.name}" 已删除`)
+    toastStore.success(`"${deleteTarget.value.name}" 已删除`)
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '删除失败')
+    toastStore.error(e.message || '删除失败')
   } finally {
     deleteTarget.value = null
   }
@@ -120,19 +123,6 @@ function getChildCount(cats?: Category[]): number {
     const childCount = c.children && c.children.length > 0 ? getChildCount(c.children) : 0
     return sum + (c.parentId ? 1 : 0) + childCount
   }, 0)
-}
-
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
 }
 
 // ==================== 拖拽排序功能 ====================
@@ -239,19 +229,19 @@ async function handleDrop(event: DragEvent, targetCategory: Category) {
   
   // 检查是否拖放到自己的子元素中
   if (isDescendant(source, target)) {
-    showToast('不能将分类拖放到其子分类中')
+    toastStore.warning('不能将分类拖放到其子分类中')
     resetDragState()
     return
   }
-  
+
   try {
     // 构建新的排序数据
     const sortItems = buildSortItems(source, target, dragPosition.value)
     await updateCategorySort(sortItems)
-    showToast('排序已更新')
+    toastStore.success('排序已更新')
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '排序失败')
+    toastStore.error(e.message || '排序失败')
   } finally {
     resetDragState()
   }
@@ -391,10 +381,10 @@ async function handleContainerDrop(event: DragEvent) {
     })
     
     await updateCategorySort(items)
-    showToast('已移动到顶级目录')
+    toastStore.success('已移动到顶级目录')
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '移动失败')
+    toastStore.error(e.message || '移动失败')
   } finally {
     resetDragState()
   }
@@ -582,23 +572,5 @@ onMounted(loadData)
       :item-name="deleteTarget?.name"
       @confirm="confirmDelete"
     />
-
-    <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
-
-<style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

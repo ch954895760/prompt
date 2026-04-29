@@ -9,5 +9,6 @@ const isLoginPage = computed(() => route.path === '/login')
 <template>
   <div class="min-h-screen">
     <RouterView />
+    <ToastContainer />
   </div>
 </template>

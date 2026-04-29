@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import { getTags, createTag, updateTag, deleteTag } from '@/api/tag'
 import type { Tag } from '@/types'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+
+const toastStore = useToastStore()
 
 const tags = ref<Tag[]>([])
 const loading = ref(false)
@@ -43,21 +46,21 @@ function openEditModal(tag: Tag) {
 
 async function handleSubmit() {
   if (!form.value.name.trim()) {
-    showToast('请输入标签名称')
+    toastStore.warning('请输入标签名称')
     return
   }
   try {
     if (modalMode.value === 'edit' && editingId.value) {
       await updateTag(editingId.value, form.value)
-      showToast('标签已更新')
+      toastStore.success('标签已更新')
     } else {
       await createTag(form.value)
-      showToast('标签已创建')
+      toastStore.success('标签已创建')
     }
     showModal.value = false
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '操作失败')
+    toastStore.error(e.message || '操作失败')
   }
 }
 
@@ -73,26 +76,13 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
     await deleteTag(deleteTarget.value.id)
-    showToast(`"${deleteTarget.value.name}" 已删除`)
+    toastStore.success(`"${deleteTarget.value.name}" 已删除`)
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '删除失败')
+    toastStore.error(e.message || '删除失败')
   } finally {
     deleteTarget.value = null
   }
-}
-
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
 }
 
 onMounted(loadData)
@@ -212,23 +202,5 @@ onMounted(loadData)
       :item-name="deleteTarget?.name"
       @confirm="confirmDelete"
     />
-
-    <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
-
-<style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

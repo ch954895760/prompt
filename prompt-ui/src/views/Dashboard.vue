@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import { getPromptList, usePrompt, getRecentlyUsedPrompts } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
@@ -10,6 +11,7 @@ import { FileText, FolderOpen, Zap, Copy, ChevronRight, Clock } from 'lucide-vue
 
 const router = useRouter()
 const userStore = useUserStore()
+const toastStore = useToastStore()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
@@ -100,23 +102,10 @@ async function copyPrompt(content: string, title: string, id: number) {
       document.body.removeChild(textarea)
     }
     await usePrompt(id)
-    showToast(`"${title}" 已复制`)
+    toastStore.success(`"${title}" 已复制`)
   } catch (e) {
-    showToast('复制失败，请手动复制')
+    toastStore.error('复制失败，请手动复制')
   }
-}
-
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
 }
 
 function navigate(path: string) {
@@ -138,9 +127,9 @@ async function copyRecentlyUsed(content: string, title: string, id: number) {
       document.body.removeChild(textarea)
     }
     await usePrompt(id, '从最近使用复制')
-    showToast(`"${title}" 已复制`)
+    toastStore.success(`"${title}" 已复制`)
   } catch (e) {
-    showToast('复制失败，请手动复制')
+    toastStore.error('复制失败，请手动复制')
   }
 }
 
@@ -303,21 +292,5 @@ onUnmounted(() => {
     </div>
 
     <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50 transition-all"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
-
-<style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

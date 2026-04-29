@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
@@ -35,6 +36,7 @@ marked.use({
 
 const route = useRoute()
 const router = useRouter()
+const toastStore = useToastStore()
 const isEdit = computed(() => !!route.params.id)
 const promptId = computed(() => Number(route.params.id))
 
@@ -290,11 +292,11 @@ async function loadPrompt() {
 
 async function handleSave() {
   if (!title.value.trim()) {
-    showToast('请输入提示词标题')
+    toastStore.warning('请输入提示词标题')
     return
   }
   if (!content.value.trim()) {
-    showToast('请输入提示词内容')
+    toastStore.warning('请输入提示词内容')
     return
   }
   loading.value = true
@@ -309,14 +311,14 @@ async function handleSave() {
     }
     if (isEdit.value) {
       await updatePrompt(promptId.value, data)
-      showToast('提示词已更新')
+      toastStore.success('提示词已更新')
     } else {
       await createPrompt(data)
-      showToast('提示词已创建')
+      toastStore.success('提示词已创建')
     }
     setTimeout(() => router.push('/prompts'), 800)
   } catch (e: any) {
-    showToast(e.message || '保存失败')
+    toastStore.error(e.message || '保存失败')
   } finally {
     loading.value = false
   }
@@ -329,9 +331,9 @@ function handleCopy() {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast('已复制到剪贴板')
+      toastStore.success('已复制到剪贴板')
     }).catch(() => {
-      showToast('复制失败，请手动复制')
+      toastStore.error('复制失败，请手动复制')
     })
   } else {
     const textarea = document.createElement('textarea')
@@ -343,9 +345,9 @@ function handleCopy() {
     const success = document.execCommand('copy')
     document.body.removeChild(textarea)
     if (success) {
-      showToast('已复制到剪贴板')
+      toastStore.success('已复制到剪贴板')
     } else {
-      showToast('复制失败，请手动复制')
+      toastStore.error('复制失败，请手动复制')
     }
   }
 }
@@ -532,27 +534,14 @@ async function confirmRollback() {
   if (!rollbackVersion.value) return
   try {
     await rollbackPrompt(promptId.value, rollbackVersion.value)
-    showToast('已回滚到指定版本')
+    toastStore.success('已回滚到指定版本')
     await loadPrompt()
     await loadHistory()
   } catch (e: any) {
-    showToast(e.message || '回滚失败')
+    toastStore.error(e.message || '回滚失败')
   } finally {
     rollbackVersion.value = null
   }
-}
-
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
 }
 
 onMounted(() => {
@@ -948,25 +937,8 @@ onUnmounted(() => {
       @apply="(optimized) => content = optimized"
     />
 
-    <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
-
-<style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>
 
 <style>
 .ai-markdown h1 {

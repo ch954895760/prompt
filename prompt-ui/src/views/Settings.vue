@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
 import AvatarUpload from '@/components/AvatarUpload.vue'
@@ -12,6 +13,7 @@ import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, s
 import { User, Palette, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
 
 const userStore = useUserStore()
+const toastStore = useToastStore()
 const setting = ref<UserSetting | null>(null)
 const loading = ref(false)
 
@@ -129,9 +131,9 @@ async function handleAvatarSuccess(url: string) {
     if (userStore.user) {
       userStore.user.avatar = url
     }
-    showToast('头像更新成功')
+    toastStore.success('头像更新成功')
   } catch (e: any) {
-    showToast(e.message || '头像保存失败')
+    toastStore.error(e.message || '头像保存失败')
   }
 }
 
@@ -145,9 +147,9 @@ async function handleSave() {
       apiKeyEncrypted: form.value.apiKey,
       model: form.value.model,
     })
-    showToast('设置已保存')
+    toastStore.success('设置已保存')
   } catch (e: any) {
-    showToast(e.message || '保存失败')
+    toastStore.error(e.message || '保存失败')
   } finally {
     loading.value = false
   }
@@ -191,15 +193,15 @@ function onProviderChange() {
 
 async function handleSaveAiProvider() {
   if (!aiProviderForm.value.name.trim()) {
-    showToast('请输入配置名称')
+    toastStore.warning('请输入配置名称')
     return
   }
   if (!aiProviderForm.value.apiBaseUrl.trim()) {
-    showToast('请输入API Base URL')
+    toastStore.warning('请输入API Base URL')
     return
   }
   if (!aiProviderForm.value.model.trim()) {
-    showToast('请输入模型名称')
+    toastStore.warning('请输入模型名称')
     return
   }
 
@@ -217,10 +219,10 @@ async function handleSaveAiProvider() {
         updateData.apiKey = aiProviderForm.value.apiKey
       }
       await updateAiProvider(editingProvider.value.id, updateData)
-      showToast('AI配置已更新')
+      toastStore.success('AI配置已更新')
     } else {
       if (!aiProviderForm.value.apiKey) {
-        showToast('请输入API Key')
+        toastStore.warning('请输入API Key')
         aiProviderLoading.value = false
         return
       }
@@ -233,12 +235,12 @@ async function handleSaveAiProvider() {
         isDefault: aiProviderForm.value.isDefault,
       }
       await createAiProvider(createData)
-      showToast('AI配置已添加')
+      toastStore.success('AI配置已添加')
     }
     showAiProviderModal.value = false
     await loadAiProviders()
   } catch (e: any) {
-    showToast(e.message || '保存失败')
+    toastStore.error(e.message || '保存失败')
   } finally {
     aiProviderLoading.value = false
   }
@@ -253,10 +255,10 @@ async function confirmDeleteAiProvider() {
   if (!deletingProvider.value) return
   try {
     await deleteAiProvider(deletingProvider.value.id)
-    showToast('AI配置已删除')
+    toastStore.success('AI配置已删除')
     await loadAiProviders()
   } catch (e: any) {
-    showToast(e.message || '删除失败')
+    toastStore.error(e.message || '删除失败')
   } finally {
     deletingProvider.value = null
     showDeleteDialog.value = false
@@ -267,10 +269,10 @@ async function handleSetDefault(provider: AiProvider) {
   if (provider.isDefault) return
   try {
     await setDefaultAiProvider(provider.id)
-    showToast('已设为默认')
+    toastStore.success('已设为默认')
     await loadAiProviders()
   } catch (e: any) {
-    showToast(e.message || '设置失败')
+    toastStore.error(e.message || '设置失败')
   }
 }
 
@@ -280,19 +282,6 @@ function getProviderLabel(providerValue: string) {
 
 function getProviderIcon(providerValue: string) {
   return providerOptions.find(p => p.value === providerValue)?.icon || '🤖'
-}
-
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
 }
 
 // Password Change Functions
@@ -320,23 +309,23 @@ function closePasswordModal() {
 async function handleChangePassword() {
   // 表单验证
   if (!passwordForm.value.currentPassword) {
-    showToast('请输入当前密码')
+    toastStore.warning('请输入当前密码')
     return
   }
   if (!passwordForm.value.newPassword) {
-    showToast('请输入新密码')
+    toastStore.warning('请输入新密码')
     return
   }
   if (passwordForm.value.newPassword.length < 6) {
-    showToast('新密码长度不能少于6位')
+    toastStore.warning('新密码长度不能少于6位')
     return
   }
   if (!passwordForm.value.confirmPassword) {
-    showToast('请确认新密码')
+    toastStore.warning('请确认新密码')
     return
   }
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    showToast('两次输入的新密码不一致')
+    toastStore.warning('两次输入的新密码不一致')
     return
   }
 
@@ -347,10 +336,10 @@ async function handleChangePassword() {
       newPassword: passwordForm.value.newPassword,
       confirmPassword: passwordForm.value.confirmPassword
     })
-    showToast('密码修改成功')
+    toastStore.success('密码修改成功')
     closePasswordModal()
   } catch (e: any) {
-    showToast(e.message || '密码修改失败')
+    toastStore.error(e.message || '密码修改失败')
   } finally {
     passwordLoading.value = false
   }
@@ -784,26 +773,10 @@ onMounted(() => {
       :item-name="deletingProvider?.name"
       @confirm="confirmDeleteAiProvider"
     />
-
-    <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
 
 <style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease;
 }

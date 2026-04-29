@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useToastStore } from '@/stores/toast'
 import MainLayout from '@/components/MainLayout.vue'
 import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
@@ -12,6 +13,7 @@ import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
+const toastStore = useToastStore()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
@@ -110,9 +112,9 @@ async function confirmDelete() {
   try {
     await deletePrompt(deleteTarget.value.id)
     await loadData()
-    showToast(`"${deleteTarget.value.title}" 已删除`)
+    toastStore.success(`"${deleteTarget.value.title}" 已删除`)
   } catch (e) {
-    showToast('删除失败')
+    toastStore.error('删除失败')
   } finally {
     deleteTarget.value = null
   }
@@ -133,9 +135,9 @@ async function copyPrompt(content: string, title: string, id: number) {
       document.body.removeChild(textarea)
     }
     await usePrompt(id, '从提示词列表复制')
-    showToast(`"${title}" 已复制`)
+    toastStore.success(`"${title}" 已复制`)
   } catch (e) {
-    showToast('复制失败，请手动复制')
+    toastStore.error('复制失败，请手动复制')
   }
 }
 
@@ -160,19 +162,6 @@ const deleteDialogVisible = ref(false)
 const deleteTarget = ref<{ id: number; title: string } | null>(null)
 const importFile = ref<HTMLInputElement | null>(null)
 
-const toastVisible = ref(false)
-const toastMessage = ref('')
-let toastTimer: ReturnType<typeof setTimeout>
-
-function showToast(message: string) {
-  toastMessage.value = message
-  toastVisible.value = true
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false
-  }, 2500)
-}
-
 function getPreview(content: string): string {
   return content.substring(0, 80).replace(/\{\{(\w+)\}\}/g, '<span style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{$1}}</span>') + '...'
 }
@@ -186,9 +175,9 @@ async function handleExportJson() {
     a.download = `prompts-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    showToast('JSON 导出成功')
+    toastStore.success('JSON 导出成功')
   } catch (e: any) {
-    showToast(e.message || '导出失败')
+    toastStore.error(e.message || '导出失败')
   }
 }
 
@@ -201,9 +190,9 @@ async function handleExportMarkdown() {
     a.download = `prompts-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
-    showToast('Markdown 导出成功')
+    toastStore.success('Markdown 导出成功')
   } catch (e: any) {
-    showToast(e.message || '导出失败')
+    toastStore.error(e.message || '导出失败')
   }
 }
 
@@ -219,14 +208,14 @@ async function handleImportFile(event: Event) {
     const text = await file.text()
     const data = JSON.parse(text)
     if (!Array.isArray(data)) {
-      showToast('文件格式错误：应为 JSON 数组')
+      toastStore.error('文件格式错误：应为 JSON 数组')
       return
     }
     const count = await importPrompts(data)
-    showToast(`成功导入 ${count} 条提示词`)
+    toastStore.success(`成功导入 ${count} 条提示词`)
     await loadData()
   } catch (e: any) {
-    showToast(e.message || '导入失败')
+    toastStore.error(e.message || '导入失败')
   } finally {
     target.value = ''
   }
@@ -494,25 +483,10 @@ onUnmounted(() => {
       :item-name="deleteTarget?.title"
       @confirm="confirmDelete"
     />
-
-    <!-- Toast -->
-    <div v-if="toastVisible"
-      class="fixed bottom-6 right-6 px-5 py-3 rounded-xl flex items-center gap-2.5 z-50"
-      style="background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease;"
-    >
-      <div class="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <span class="text-sm" style="color: var(--text-primary)">{{ toastMessage }}</span>
-    </div>
   </MainLayout>
 </template>
 
 <style scoped>
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 .tag-pill:hover {
   transform: scale(1.05);
 }
