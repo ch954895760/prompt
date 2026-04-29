@@ -7,7 +7,9 @@ import { getCategoryTree, createCategory, updateCategory, deleteCategory, update
 import type { Category } from '@/types'
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, GripVertical } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const toastStore = useToastStore()
 
 const categories = ref<Category[]>([])
@@ -59,7 +61,7 @@ function openEditModal(cat: Category) {
 
 async function handleSubmit() {
   if (!form.value.name.trim()) {
-    toastStore.warning('请输入分类名称')
+    toastStore.warning(t('category.nameRequired'))
     return
   }
   try {
@@ -69,15 +71,15 @@ async function handleSubmit() {
     }
     if (modalMode.value === 'edit' && editingId.value) {
       await updateCategory(editingId.value, data)
-      toastStore.success('分类已更新')
+      toastStore.success(t('category.updateSuccess'))
     } else {
       await createCategory(data)
-      toastStore.success('分类已创建')
+      toastStore.success(t('category.createSuccess'))
     }
     showModal.value = false
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '操作失败')
+    toastStore.error(e.message || t('category.operationFailed'))
   }
 }
 
@@ -93,10 +95,10 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
     await deleteCategory(deleteTarget.value.id)
-    toastStore.success(`"${deleteTarget.value.name}" 已删除`)
+    toastStore.success(t('category.deleteSuccess', { name: deleteTarget.value.name }))
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '删除失败')
+    toastStore.error(e.message || t('category.deleteFailed'))
   } finally {
     deleteTarget.value = null
   }
@@ -229,7 +231,7 @@ async function handleDrop(event: DragEvent, targetCategory: Category) {
   
   // 检查是否拖放到自己的子元素中
   if (isDescendant(source, target)) {
-    toastStore.warning('不能将分类拖放到其子分类中')
+    toastStore.warning(t('category.cannotMoveToChild'))
     resetDragState()
     return
   }
@@ -238,10 +240,10 @@ async function handleDrop(event: DragEvent, targetCategory: Category) {
     // 构建新的排序数据
     const sortItems = buildSortItems(source, target, dragPosition.value)
     await updateCategorySort(sortItems)
-    toastStore.success('排序已更新')
+    toastStore.success(t('category.sortSuccess'))
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '排序失败')
+    toastStore.error(e.message || t('category.sortFailed'))
   } finally {
     resetDragState()
   }
@@ -381,10 +383,10 @@ async function handleContainerDrop(event: DragEvent) {
     })
     
     await updateCategorySort(items)
-    toastStore.success('已移动到顶级目录')
+    toastStore.success(t('category.movedToRoot'))
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '移动失败')
+    toastStore.error(e.message || t('category.moveFailed'))
   } finally {
     resetDragState()
   }
@@ -405,8 +407,8 @@ onMounted(loadData)
     <div class="animate-fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">分类管理</h2>
-          <p class="text-sm" style="color: var(--text-secondary)">组织你的提示词结构</p>
+          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">{{ t('nav.categoryManage') }}</h2>
+          <p class="text-sm" style="color: var(--text-secondary)">{{ t('category.manageDescription') }}</p>
         </div>
         <div class="flex items-center gap-3">
           <button
@@ -418,13 +420,13 @@ onMounted(loadData)
             :style="!isEditMode ? { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' } : {}"
           >
             <GripVertical class="w-4 h-4" />
-            {{ isEditMode ? '完成排序' : '排序模式' }}
+            {{ isEditMode ? t('category.finishSort') : t('category.sortMode') }}
           </button>
           <button @click="openCreateModal()"
             class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
           >
             <Plus class="w-4 h-4" />
-            新建分类
+            {{ t('category.newCategory') }}
           </button>
         </div>
       </div>
@@ -437,8 +439,8 @@ onMounted(loadData)
           @dragover="handleContainerDragOver"
           @drop="handleContainerDrop"
         >
-          <div v-if="loading" class="text-center py-8" style="color: var(--text-muted)">加载中...</div>
-          <div v-else-if="categories.length === 0" class="text-center py-8" style="color: var(--text-muted)">暂无分类</div>
+          <div v-if="loading" class="text-center py-8" style="color: var(--text-muted)">{{ t('common.loading') }}</div>
+          <div v-else-if="categories.length === 0" class="text-center py-8" style="color: var(--text-muted)">{{ t('category.noCategories') }}</div>
           <div v-else class="space-y-1">
             <CategoryNode v-for="cat in categories.filter(c => !c.parentId)" :key="cat.id"
               :category="cat"
@@ -461,7 +463,7 @@ onMounted(loadData)
             class="absolute inset-0 flex items-center justify-center pointer-events-none"
           >
             <div class="px-4 py-2 rounded-lg text-sm font-medium bg-[#ea580c]/10 text-[#ea580c] border border-[#ea580c]/30">
-              拖放到此处成为顶级分类
+              {{ t('category.dragToRoot') }}
             </div>
           </div>
         </div>
@@ -469,18 +471,18 @@ onMounted(loadData)
         <!-- Quick stats -->
         <div class="space-y-5">
           <div class="rounded-2xl p-5" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary)">分类统计</h4>
+            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary)">{{ t('category.statistics') }}</h4>
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <span class="text-xs" style="color: var(--text-secondary)">一级分类</span>
+                <span class="text-xs" style="color: var(--text-secondary)">{{ t('category.rootCategories') }}</span>
                 <span class="text-sm font-semibold" style="color: var(--text-primary)">{{ getRootCount() }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-xs" style="color: var(--text-secondary)">子分类</span>
+                <span class="text-xs" style="color: var(--text-secondary)">{{ t('category.subCategories') }}</span>
                 <span class="text-sm font-semibold" style="color: var(--text-primary)">{{ getChildCount() }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-xs" style="color: var(--text-secondary)">提示词总数</span>
+                <span class="text-xs" style="color: var(--text-secondary)">{{ t('category.totalPrompts') }}</span>
                 <span class="text-sm font-semibold" style="color: var(--text-primary)">{{ getTotalCount(categories) }}</span>
               </div>
             </div>
@@ -488,27 +490,27 @@ onMounted(loadData)
           
           <!-- 排序提示 -->
           <div v-if="isEditMode" class="rounded-2xl p-5" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-            <h4 class="text-sm font-semibold mb-3" style="color: var(--text-primary)">排序说明</h4>
+            <h4 class="text-sm font-semibold mb-3" style="color: var(--text-primary)">{{ t('category.sortInstructions') }}</h4>
             <div class="space-y-2 text-xs" style="color: var(--text-secondary)">
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
-                <span>拖拽分类可调整顺序</span>
+                <span>{{ t('category.dragToSort') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
-                <span>拖放到分类上方：排在前面</span>
+                <span>{{ t('category.dragAbove') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
-                <span>拖放到分类下方：排在后面</span>
+                <span>{{ t('category.dragBelow') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/20"></div>
-                <span>拖放到分类中间：成为子分类</span>
+                <span>{{ t('category.dragInside') }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-[#ea580c]/30 border border-[#ea580c]/50"></div>
-                <span>拖放到空白区域：成为顶级分类</span>
+                <span>{{ t('category.dragToEmpty') }}</span>
               </div>
             </div>
           </div>
@@ -525,21 +527,21 @@ onMounted(loadData)
         style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
       >
         <h3 class="font-semibold text-lg mb-4" style="color: var(--text-primary)">
-          {{ modalMode === 'create' ? '新建分类' : '编辑分类' }}
+          {{ modalMode === 'create' ? t('category.createTitle') : t('category.editTitle') }}
         </h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">分类名称</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('category.name') }}</label>
             <input v-model="form.name" type="text"
               class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
               style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              placeholder="输入分类名称"
+              :placeholder="t('category.namePlaceholder')"
               @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
               @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
             >
           </div>
           <div>
-            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">颜色</label>
+            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('category.color') }}</label>
             <div class="flex gap-2 flex-wrap">
               <div v-for="color in colorOptions" :key="color"
                 class="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
@@ -555,12 +557,12 @@ onMounted(loadData)
             class="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
             style="color: var(--text-secondary);"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button @click="handleSubmit"
             class="flex-1 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all"
           >
-            {{ modalMode === 'create' ? '创建' : '更新' }}
+            {{ modalMode === 'create' ? t('common.create') : t('common.update') }}
           </button>
         </div>
       </div>

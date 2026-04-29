@@ -3,6 +3,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToastStore } from '@/stores/toast'
+import { useI18n } from 'vue-i18n'
 import MainLayout from '@/components/MainLayout.vue'
 import { getPromptList, usePrompt, getRecentlyUsedPrompts } from '@/api/prompt'
 import { getCategoryList } from '@/api/category'
@@ -12,6 +13,7 @@ import { FileText, FolderOpen, Zap, Copy, ChevronRight, Clock } from 'lucide-vue
 const router = useRouter()
 const userStore = useUserStore()
 const toastStore = useToastStore()
+const { t, locale } = useI18n()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
@@ -30,12 +32,12 @@ const stats = computed(() => ({
 // 根据当前时间返回问候语
 const greeting = computed(() => {
   const hour = currentTime.value.getHours()
-  if (hour < 6) return '晚上好'
-  if (hour < 9) return '早上好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
+  if (hour < 6) return t('dashboard.greeting.night')
+  if (hour < 9) return t('dashboard.greeting.earlyMorning')
+  if (hour < 12) return t('dashboard.greeting.morning')
+  if (hour < 14) return t('dashboard.greeting.noon')
+  if (hour < 18) return t('dashboard.greeting.afternoon')
+  return t('dashboard.greeting.evening')
 })
 
 // 格式化当前时间
@@ -53,9 +55,13 @@ const formattedDate = computed(() => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const weekDays = locale.value === 'zh-CN'
+    ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const weekDay = weekDays[date.getDay()]
-  return `${year}年${month}月${day}日 ${weekDay}`
+  return locale.value === 'zh-CN'
+    ? `${year}年${month}月${day}日 ${weekDay}`
+    : `${weekDay}, ${year}-${month}-${day}`
 })
 
 const recentPrompts = computed(() => prompts.value.slice(0, 4))
@@ -102,9 +108,9 @@ async function copyPrompt(content: string, title: string, id: number) {
       document.body.removeChild(textarea)
     }
     await usePrompt(id)
-    toastStore.success(`"${title}" 已复制`)
+    toastStore.success(t('common.copied') + `: "${title}"`)
   } catch (e) {
-    toastStore.error('复制失败，请手动复制')
+    toastStore.error(t('common.copyFailed'))
   }
 }
 
@@ -126,10 +132,10 @@ async function copyRecentlyUsed(content: string, title: string, id: number) {
       document.execCommand('copy')
       document.body.removeChild(textarea)
     }
-    await usePrompt(id, '从最近使用复制')
-    toastStore.success(`"${title}" 已复制`)
+    await usePrompt(id, t('dashboard.fromRecentCopy'))
+    toastStore.success(t('common.copied') + `: "${title}"`)
   } catch (e) {
-    toastStore.error('复制失败，请手动复制')
+    toastStore.error(t('common.copyFailed'))
   }
 }
 
@@ -157,9 +163,9 @@ onUnmounted(() => {
       <div class="mb-8 flex items-start justify-between">
         <div>
           <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
-            {{ greeting }}, {{ userStore.user?.username || '用户' }}
+            {{ greeting }}, {{ userStore.user?.username || t('user.user') }}
           </h2>
-          <p class="text-sm" style="color: var(--text-secondary)">今天准备创作什么?</p>
+          <p class="text-sm" style="color: var(--text-secondary)">{{ t('dashboard.whatToCreate') }}</p>
         </div>
         <div class="text-right">
           <div class="text-3xl font-mono font-bold" style="color: var(--accent)">{{ formattedTime }}</div>
@@ -182,7 +188,7 @@ onUnmounted(() => {
             <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+12%</span>
           </div>
           <div class="text-2xl font-bold mb-0.5" style="color: var(--text-primary)">{{ stats.total }}</div>
-          <div class="text-xs" style="color: var(--text-muted)">提示词总数</div>
+          <div class="text-xs" style="color: var(--text-muted)">{{ t('dashboard.totalPrompts') }}</div>
         </div>
 
         <div class="rounded-2xl p-5 relative overflow-hidden transition-all hover:-translate-y-0.5"
@@ -198,7 +204,7 @@ onUnmounted(() => {
             <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+3</span>
           </div>
           <div class="text-2xl font-bold mb-0.5" style="color: var(--text-primary)">{{ stats.categories }}</div>
-          <div class="text-xs" style="color: var(--text-muted)">分类数量</div>
+          <div class="text-xs" style="color: var(--text-muted)">{{ t('dashboard.categoryCount') }}</div>
         </div>
 
         <div class="rounded-2xl p-5 relative overflow-hidden transition-all hover:-translate-y-0.5"
@@ -214,7 +220,7 @@ onUnmounted(() => {
             <span class="text-[10px] font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">+28%</span>
           </div>
           <div class="text-2xl font-bold mb-0.5" style="color: var(--text-primary)">{{ stats.weeklyUsage }}</div>
-          <div class="text-xs" style="color: var(--text-muted)">累计使用次数</div>
+          <div class="text-xs" style="color: var(--text-muted)">{{ t('dashboard.totalUsage') }}</div>
         </div>
       </div>
 
@@ -223,11 +229,11 @@ onUnmounted(() => {
         <!-- Recently edited -->
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="font-semibold" style="color: var(--text-primary)">最近编辑</h3>
-            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">查看全部</a>
+            <h3 class="font-semibold" style="color: var(--text-primary)">{{ t('dashboard.recentlyEdited') }}</h3>
+            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">{{ t('dashboard.viewAll') }}</a>
           </div>
-          <div v-if="loading" class="py-8 text-center text-sm" style="color: var(--text-muted)">加载中...</div>
-          <div v-else-if="recentPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">暂无提示词</div>
+          <div v-if="loading" class="py-8 text-center text-sm" style="color: var(--text-muted)">{{ t('common.loading') }}</div>
+          <div v-else-if="recentPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">{{ t('dashboard.noPrompts') }}</div>
           <div v-else class="space-y-3">
             <div v-for="p in recentPrompts" :key="p.id"
               class="flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer group"
@@ -239,7 +245,7 @@ onUnmounted(() => {
               <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium truncate transition-colors group-hover:opacity-80" :style="{ color: p.categoryColor || 'var(--text-primary)' }">{{ p.title }}</div>
-                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · {{ p.updatedAt }}</div>
+                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || t('prompt.uncategorized') }} · {{ p.updatedAt }}</div>
               </div>
               <button @click.stop="copyPrompt(p.content, p.title, p.id)"
                 class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"
@@ -258,12 +264,12 @@ onUnmounted(() => {
           <div class="flex items-center justify-between mb-5">
             <h3 class="font-semibold flex items-center gap-2" style="color: var(--text-primary)">
               <Clock class="w-4 h-4" style="color: var(--accent)" />
-              最近使用
+              {{ t('dashboard.recentlyUsed') }}
             </h3>
-            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">查看全部</a>
+            <a href="#" @click.prevent="navigate('/prompts')" class="text-xs font-medium hover:underline" style="color: var(--accent)">{{ t('dashboard.viewAll') }}</a>
           </div>
-          <div v-if="loadingRecentlyUsed" class="py-8 text-center text-sm" style="color: var(--text-muted)">加载中...</div>
-          <div v-else-if="recentlyUsedPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">暂无使用记录</div>
+          <div v-if="loadingRecentlyUsed" class="py-8 text-center text-sm" style="color: var(--text-muted)">{{ t('common.loading') }}</div>
+          <div v-else-if="recentlyUsedPrompts.length === 0" class="py-8 text-center text-sm" style="color: var(--text-muted)">{{ t('dashboard.noUsage') }}</div>
           <div v-else class="space-y-3">
             <div v-for="p in recentlyUsedPrompts" :key="p.id"
               class="flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer group"
@@ -275,7 +281,7 @@ onUnmounted(() => {
               <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium truncate transition-colors group-hover:opacity-80" :style="{ color: p.categoryColor || 'var(--text-primary)' }">{{ p.title }}</div>
-                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }} · 已使用 {{ p.usageCount || 0 }} 次</div>
+                <div class="text-xs truncate" style="color: var(--text-muted)">{{ p.categoryName || t('prompt.uncategorized') }} · {{ t('prompt.usedCount', { count: p.usageCount || 0 }) }}</div>
               </div>
               <button @click.stop="copyRecentlyUsed(p.content, p.title, p.id)"
                 class="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg"

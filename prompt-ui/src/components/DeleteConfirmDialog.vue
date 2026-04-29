@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { AlertTriangle, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -9,10 +13,10 @@ const props = withDefaults(defineProps<{
   confirmText?: string
   cancelText?: string
 }>(), {
-  title: '确认删除',
+  title: '',
   description: '',
-  confirmText: '删除',
-  cancelText: '取消',
+  confirmText: '',
+  cancelText: '',
 })
 
 const emit = defineEmits<{
@@ -20,6 +24,11 @@ const emit = defineEmits<{
   confirm: []
   cancel: []
 }>()
+
+// 使用计算属性提供默认值
+const displayTitle = computed(() => props.title || t('dialog.deleteTitle'))
+const displayConfirmText = computed(() => props.confirmText || t('common.delete'))
+const displayCancelText = computed(() => props.cancelText || t('common.cancel'))
 
 function close() {
   emit('update:modelValue', false)
@@ -65,10 +74,10 @@ function onMaskClick(e: MouseEvent) {
           </div>
 
           <!-- Content -->
-          <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary)">{{ title }}</h3>
+          <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary)">{{ displayTitle }}</h3>
           <p v-if="description" class="text-sm leading-relaxed mb-1" style="color: var(--text-secondary)">{{ description }}</p>
           <p v-else-if="itemName" class="text-sm leading-relaxed mb-1" style="color: var(--text-secondary)">
-            确定要删除 <span class="font-medium" style="color: var(--text-primary)">{{ itemName }}</span> 吗？此操作不可恢复。
+            {{ t('dialog.deleteConfirm', { name: itemName }) }}
           </p>
 
           <!-- Actions -->
@@ -79,13 +88,13 @@ function onMaskClick(e: MouseEvent) {
               @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
               @mouseleave="($event.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'"
             >
-              {{ cancelText }}
+              {{ displayCancelText }}
             </button>
             <button @click="confirm"
               class="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all bg-red-500 hover:bg-red-600 text-white"
               style="box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);"
             >
-              {{ confirmText }}
+              {{ displayConfirmText }}
             </button>
           </div>
         </div>

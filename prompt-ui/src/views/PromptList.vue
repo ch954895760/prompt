@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toast'
+import { useI18n } from 'vue-i18n'
 import MainLayout from '@/components/MainLayout.vue'
 import { getPrompts, deletePrompt, getPromptList, usePrompt, exportPromptsJson, exportPromptsMarkdown, importPrompts } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
@@ -14,6 +15,7 @@ import CategoryTreeSelect from '@/components/CategoryTreeSelect.vue'
 const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
+const { t } = useI18n()
 
 const prompts = ref<Prompt[]>([])
 const categories = ref<Category[]>([])
@@ -65,9 +67,9 @@ function flattenCategories(cats: Category[]): Category[] {
 
 // 获取分类的完整路径名称
 function getCategoryPathName(catId: number | null): string {
-  if (!catId) return '所有分类'
+  if (!catId) return t('prompt.allCategories')
   const cat = categories.value.find(c => c.id === catId)
-  if (!cat) return '所有分类'
+  if (!cat) return t('prompt.allCategories')
 
   const path: string[] = [cat.name]
   let current = cat
@@ -112,9 +114,9 @@ async function confirmDelete() {
   try {
     await deletePrompt(deleteTarget.value.id)
     await loadData()
-    toastStore.success(`"${deleteTarget.value.title}" 已删除`)
+    toastStore.success(t('prompt.deleted', { title: deleteTarget.value.title }))
   } catch (e) {
-    toastStore.error('删除失败')
+    toastStore.error(t('prompt.deleteFailed'))
   } finally {
     deleteTarget.value = null
   }
@@ -134,10 +136,10 @@ async function copyPrompt(content: string, title: string, id: number) {
       document.execCommand('copy')
       document.body.removeChild(textarea)
     }
-    await usePrompt(id, '从提示词列表复制')
-    toastStore.success(`"${title}" 已复制`)
+    await usePrompt(id, t('prompt.copiedFromList'))
+    toastStore.success(t('prompt.copied', { title }))
   } catch (e) {
-    toastStore.error('复制失败，请手动复制')
+    toastStore.error(t('common.copyFailed'))
   }
 }
 
@@ -175,9 +177,9 @@ async function handleExportJson() {
     a.download = `prompts-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    toastStore.success('JSON 导出成功')
+    toastStore.success(t('prompt.exportJsonSuccess'))
   } catch (e: any) {
-    toastStore.error(e.message || '导出失败')
+    toastStore.error(e.message || t('prompt.exportFailed'))
   }
 }
 
@@ -190,9 +192,9 @@ async function handleExportMarkdown() {
     a.download = `prompts-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
-    toastStore.success('Markdown 导出成功')
+    toastStore.success(t('prompt.exportMarkdownSuccess'))
   } catch (e: any) {
-    toastStore.error(e.message || '导出失败')
+    toastStore.error(e.message || t('prompt.exportFailed'))
   }
 }
 
@@ -208,14 +210,14 @@ async function handleImportFile(event: Event) {
     const text = await file.text()
     const data = JSON.parse(text)
     if (!Array.isArray(data)) {
-      toastStore.error('文件格式错误：应为 JSON 数组')
+      toastStore.error(t('prompt.importFormatError'))
       return
     }
     const count = await importPrompts(data)
-    toastStore.success(`成功导入 ${count} 条提示词`)
+    toastStore.success(t('prompt.importSuccess', { count }))
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '导入失败')
+    toastStore.error(e.message || t('prompt.importFailed'))
   } finally {
     target.value = ''
   }
@@ -236,40 +238,40 @@ onUnmounted(() => {
     <div class="animate-fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">提示词库</h2>
-          <p class="text-sm" style="color: var(--text-secondary)">管理你的所有提示词模板</p>
+          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">{{ t('nav.promptLibrary') }}</h2>
+          <p class="text-sm" style="color: var(--text-secondary)">{{ t('prompt.manageDescription') }}</p>
         </div>
         <div class="flex items-center gap-2">
           <input ref="importFile" type="file" accept=".json" class="hidden" @change="handleImportFile">
           <button @click="handleImportClick"
             class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
-            title="导入数据"
+            :title="t('common.import')"
           >
             <Upload class="w-4 h-4" />
-            导入
+            {{ t('common.import') }}
           </button>
           <button @click="handleExportJson"
             class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
-            title="导出 JSON"
+            :title="t('prompt.exportJson')"
           >
             <Download class="w-4 h-4" />
-            导出 JSON
+            {{ t('prompt.exportJson') }}
           </button>
           <button @click="handleExportMarkdown"
             class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition-all hover:bg-[var(--bg-tertiary)]"
             style="border-color: var(--border-color); color: var(--text-secondary);"
-            title="导出 Markdown"
+            :title="t('prompt.exportMarkdown')"
           >
             <Download class="w-4 h-4" />
-            导出 Markdown
+            {{ t('prompt.exportMarkdown') }}
           </button>
           <button @click="goToEditor()"
             class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
           >
             <Plus class="w-4 h-4" />
-            新建提示词
+            {{ t('nav.newPrompt') }}
           </button>
         </div>
       </div>
@@ -304,7 +306,7 @@ onUnmounted(() => {
               @mouseenter="($event.currentTarget as HTMLElement).style.background = selectedCategory === null ? 'var(--accent-soft)' : 'var(--bg-tertiary)'"
               @mouseleave="($event.currentTarget as HTMLElement).style.background = selectedCategory === null ? 'var(--accent-soft)' : 'transparent'"
             >
-              <span class="text-sm">所有分类</span>
+              <span class="text-sm">{{ t('prompt.allCategories') }}</span>
             </div>
 
             <!-- 树形分类列表 -->
@@ -333,9 +335,9 @@ onUnmounted(() => {
             class="px-3 py-2 rounded-lg text-sm transition-all"
             style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
           >
-            <option value="updatedAt">最近更新</option>
-            <option value="usageCount">使用最多</option>
-            <option value="title">名称排序</option>
+            <option value="updatedAt">{{ t('prompt.sortByUpdated') }}</option>
+            <option value="usageCount">{{ t('prompt.sortByUsage') }}</option>
+            <option value="title">{{ t('prompt.sortByTitle') }}</option>
           </select>
           <div class="flex rounded-lg overflow-hidden border" style="border-color: var(--border-color); background: var(--bg-primary);">
             <button @click="viewMode = 'grid'"
@@ -359,14 +361,14 @@ onUnmounted(() => {
       <!-- Loading -->
       <div v-if="loading" class="text-center py-16">
         <div class="inline-block w-8 h-8 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
-        <p class="mt-3 text-sm" style="color: var(--text-muted)">加载中...</p>
+        <p class="mt-3 text-sm" style="color: var(--text-muted)">{{ t('common.loading') }}</p>
       </div>
 
       <!-- Empty state -->
       <div v-else-if="prompts.length === 0" class="text-center py-16">
         <FileText class="w-10 h-10 mx-auto mb-3" style="color: var(--text-muted)" />
-        <p class="text-sm" style="color: var(--text-muted)">暂无提示词</p>
-        <button @click="goToEditor()" class="mt-3 text-sm font-medium hover:underline" style="color: var(--accent)">创建一个</button>
+        <p class="text-sm" style="color: var(--text-muted)">{{ t('prompt.noPrompts') }}</p>
+        <button @click="goToEditor()" class="mt-3 text-sm font-medium hover:underline" style="color: var(--accent)">{{ t('prompt.createOne') }}</button>
       </div>
 
       <!-- Grid view -->
@@ -380,7 +382,7 @@ onUnmounted(() => {
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
               <div class="w-2.5 h-2.5 rounded-full" :style="{ background: p.categoryColor || '#d6d3d1' }"></div>
-              <span class="text-[10px] font-medium uppercase tracking-wider" style="color: var(--text-muted)">{{ p.categoryName || '未分类' }}</span>
+              <span class="text-[10px] font-medium uppercase tracking-wider" style="color: var(--text-muted)">{{ p.categoryName || t('prompt.uncategorized') }}</span>
             </div>
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button @click="goToEditor(p.id)"
@@ -413,7 +415,7 @@ onUnmounted(() => {
               style="color: var(--accent);"
             >
               <Copy class="w-3 h-3" />
-              复制
+              {{ t('common.copy') }}
             </button>
           </div>
         </div>
@@ -434,7 +436,7 @@ onUnmounted(() => {
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <span class="text-[10px] px-2 py-0.5 rounded-md font-medium" style="background: var(--bg-tertiary); color: var(--text-muted)">
-              {{ p.categoryName || '未分类' }}
+              {{ p.categoryName || t('prompt.uncategorized') }}
             </span>
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button @click="copyPrompt(p.content, p.title, p.id)"

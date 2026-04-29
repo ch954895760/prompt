@@ -11,7 +11,9 @@ import { useUserStore } from '@/stores/user'
 import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
 import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
 import { User, Palette, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const userStore = useUserStore()
 const toastStore = useToastStore()
 const setting = ref<UserSetting | null>(null)
@@ -131,9 +133,9 @@ async function handleAvatarSuccess(url: string) {
     if (userStore.user) {
       userStore.user.avatar = url
     }
-    toastStore.success('头像更新成功')
+    toastStore.success(t('settings.avatarSuccess'))
   } catch (e: any) {
-    toastStore.error(e.message || '头像保存失败')
+    toastStore.error(e.message || t('settings.avatarFailed'))
   }
 }
 
@@ -147,9 +149,9 @@ async function handleSave() {
       apiKeyEncrypted: form.value.apiKey,
       model: form.value.model,
     })
-    toastStore.success('设置已保存')
+    toastStore.success(t('settings.saveSuccess'))
   } catch (e: any) {
-    toastStore.error(e.message || '保存失败')
+    toastStore.error(e.message || t('settings.saveFailed'))
   } finally {
     loading.value = false
   }
@@ -193,15 +195,15 @@ function onProviderChange() {
 
 async function handleSaveAiProvider() {
   if (!aiProviderForm.value.name.trim()) {
-    toastStore.warning('请输入配置名称')
+    toastStore.warning(t('settings.providerNameRequired'))
     return
   }
   if (!aiProviderForm.value.apiBaseUrl.trim()) {
-    toastStore.warning('请输入API Base URL')
+    toastStore.warning(t('settings.apiBaseUrlRequired'))
     return
   }
   if (!aiProviderForm.value.model.trim()) {
-    toastStore.warning('请输入模型名称')
+    toastStore.warning(t('settings.modelRequired'))
     return
   }
 
@@ -219,10 +221,10 @@ async function handleSaveAiProvider() {
         updateData.apiKey = aiProviderForm.value.apiKey
       }
       await updateAiProvider(editingProvider.value.id, updateData)
-      toastStore.success('AI配置已更新')
+      toastStore.success(t('settings.providerUpdateSuccess'))
     } else {
       if (!aiProviderForm.value.apiKey) {
-        toastStore.warning('请输入API Key')
+        toastStore.warning(t('settings.apiKeyRequired'))
         aiProviderLoading.value = false
         return
       }
@@ -235,12 +237,12 @@ async function handleSaveAiProvider() {
         isDefault: aiProviderForm.value.isDefault,
       }
       await createAiProvider(createData)
-      toastStore.success('AI配置已添加')
+      toastStore.success(t('settings.providerCreateSuccess'))
     }
     showAiProviderModal.value = false
     await loadAiProviders()
   } catch (e: any) {
-    toastStore.error(e.message || '保存失败')
+    toastStore.error(e.message || t('settings.providerSaveFailed'))
   } finally {
     aiProviderLoading.value = false
   }
@@ -255,10 +257,10 @@ async function confirmDeleteAiProvider() {
   if (!deletingProvider.value) return
   try {
     await deleteAiProvider(deletingProvider.value.id)
-    toastStore.success('AI配置已删除')
+    toastStore.success(t('settings.providerDeleteSuccess'))
     await loadAiProviders()
   } catch (e: any) {
-    toastStore.error(e.message || '删除失败')
+    toastStore.error(e.message || t('settings.providerDeleteFailed'))
   } finally {
     deletingProvider.value = null
     showDeleteDialog.value = false
@@ -269,10 +271,10 @@ async function handleSetDefault(provider: AiProvider) {
   if (provider.isDefault) return
   try {
     await setDefaultAiProvider(provider.id)
-    toastStore.success('已设为默认')
+    toastStore.success(t('settings.setDefaultSuccess'))
     await loadAiProviders()
   } catch (e: any) {
-    toastStore.error(e.message || '设置失败')
+    toastStore.error(e.message || t('settings.setDefaultFailed'))
   }
 }
 
@@ -309,23 +311,23 @@ function closePasswordModal() {
 async function handleChangePassword() {
   // 表单验证
   if (!passwordForm.value.currentPassword) {
-    toastStore.warning('请输入当前密码')
+    toastStore.warning(t('settings.currentPasswordRequired'))
     return
   }
   if (!passwordForm.value.newPassword) {
-    toastStore.warning('请输入新密码')
+    toastStore.warning(t('settings.newPasswordRequired'))
     return
   }
   if (passwordForm.value.newPassword.length < 6) {
-    toastStore.warning('新密码长度不能少于6位')
+    toastStore.warning(t('settings.passwordMinLength'))
     return
   }
   if (!passwordForm.value.confirmPassword) {
-    toastStore.warning('请确认新密码')
+    toastStore.warning(t('settings.confirmPasswordRequired'))
     return
   }
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    toastStore.warning('两次输入的新密码不一致')
+    toastStore.warning(t('settings.passwordMismatch'))
     return
   }
 
@@ -336,10 +338,10 @@ async function handleChangePassword() {
       newPassword: passwordForm.value.newPassword,
       confirmPassword: passwordForm.value.confirmPassword
     })
-    toastStore.success('密码修改成功')
+    toastStore.success(t('settings.passwordChangeSuccess'))
     closePasswordModal()
   } catch (e: any) {
-    toastStore.error(e.message || '密码修改失败')
+    toastStore.error(e.message || t('settings.passwordChangeFailed'))
   } finally {
     passwordLoading.value = false
   }
@@ -355,8 +357,8 @@ onMounted(() => {
   <MainLayout>
     <div class="animate-fade-in">
       <div class="mb-6">
-        <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">设置</h2>
-        <p class="text-sm" style="color: var(--text-secondary)">管理你的账户与应用偏好</p>
+        <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">{{ t('nav.settings') }}</h2>
+        <p class="text-sm" style="color: var(--text-secondary)">{{ t('settings.manageDescription') }}</p>
       </div>
 
       <div class="max-w-3xl space-y-6">
@@ -364,21 +366,21 @@ onMounted(() => {
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
             <User class="w-4 h-4" style="color: var(--accent)" />
-            个人信息
+            {{ t('settings.profile') }}
           </h3>
           <div class="flex items-center gap-4 mb-5">
             <AvatarUpload v-model="avatarUrl" :username="form.username" @success="handleAvatarSuccess" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">用户名</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.username') }}</label>
               <input v-model="form.username" type="text" disabled
                 class="w-full px-4 py-2.5 rounded-xl text-sm"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted);"
               >
             </div>
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">邮箱</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.email') }}</label>
               <input v-model="form.email" type="email" disabled
                 class="w-full px-4 py-2.5 rounded-xl text-sm"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted);"
@@ -393,7 +395,7 @@ onMounted(() => {
               @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
             >
               <KeyRound class="w-4 h-4" />
-              修改密码
+              {{ t('settings.changePassword') }}
             </button>
           </div>
         </div>
@@ -403,21 +405,21 @@ onMounted(() => {
           <div class="flex items-center justify-between mb-5">
             <h3 class="font-semibold flex items-center gap-2" style="color: var(--text-primary)">
               <Bot class="w-4 h-4" style="color: var(--accent)" />
-              AI 模型配置
+              {{ t('settings.apiProvider') }}
             </h3>
             <button @click="openAddAiProvider"
               class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
               style="background: var(--accent); color: white;"
             >
               <Plus class="w-3.5 h-3.5" />
-              添加配置
+              {{ t('settings.addProvider') }}
             </button>
           </div>
 
           <!-- System AI Providers -->
           <div v-if="systemProviders.length > 0" class="mb-6">
             <h4 class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-secondary)">
-              系统公共模型
+              {{ t('settings.systemModels') }}
             </h4>
             <div class="space-y-2">
               <div v-for="provider in systemProviders" :key="provider.id"
@@ -437,13 +439,13 @@ onMounted(() => {
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full"
                       style="background: var(--bg-tertiary); color: var(--text-secondary);"
                     >
-                      系统
+                      {{ t('settings.system') }}
                     </span>
                     <span v-if="provider.isDefault"
                       class="text-[10px] px-1.5 py-0.5 rounded-full"
                       style="background: var(--accent); color: white;"
                     >
-                      默认
+                      {{ t('settings.default') }}
                     </span>
                   </div>
                   <div class="text-xs mt-0.5" style="color: var(--text-muted)">
@@ -457,13 +459,13 @@ onMounted(() => {
           <!-- User AI Providers -->
           <div>
             <h4 v-if="systemProviders.length > 0" class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-secondary)">
-              我的模型
+              {{ t('settings.myModels') }}
             </h4>
             <div class="space-y-3">
               <div v-if="aiProviders.length === 0" class="text-center py-8 rounded-xl" style="background: var(--bg-primary); border: 1px dashed var(--border-color);">
                 <Bot class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted)" />
-                <p class="text-sm" style="color: var(--text-muted)">暂无AI配置</p>
-                <p class="text-xs mt-1" style="color: var(--text-muted)">点击上方按钮添加你的第一个AI模型</p>
+                <p class="text-sm" style="color: var(--text-muted)">{{ t('settings.noAiProviders') }}</p>
+                <p class="text-xs mt-1" style="color: var(--text-muted)">{{ t('settings.addFirstModel') }}</p>
               </div>
 
               <div v-for="provider in userProviders" :key="provider.id"
@@ -484,7 +486,7 @@ onMounted(() => {
                       class="text-[10px] px-1.5 py-0.5 rounded-full"
                       style="background: var(--accent); color: white;"
                     >
-                      默认
+                      {{ t('settings.default') }}
                     </span>
                   </div>
                   <div class="text-xs mt-0.5" style="color: var(--text-muted)">
@@ -495,21 +497,21 @@ onMounted(() => {
                   <button v-if="!provider.isDefault" @click="handleSetDefault(provider)"
                     class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                     style="color: var(--text-muted);"
-                    title="设为默认"
+                    :title="t('settings.setDefault')"
                   >
                     <Check class="w-4 h-4" />
                   </button>
                   <button @click="openEditAiProvider(provider)"
                     class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                     style="color: var(--text-muted);"
-                    title="编辑"
+                    :title="t('common.edit')"
                   >
                     <Edit2 class="w-4 h-4" />
                   </button>
                   <button @click="handleDeleteAiProvider(provider)"
                     class="p-2 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                     style="color: var(--text-muted);"
-                    title="删除"
+                    :title="t('common.delete')"
                   >
                     <Trash2 class="w-4 h-4 hover:text-red-500" />
                   </button>
@@ -524,12 +526,12 @@ onMounted(() => {
         <div class="rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           <h3 class="font-semibold mb-5 flex items-center gap-2" style="color: var(--text-primary)">
             <Palette class="w-4 h-4" style="color: var(--accent)" />
-            外观
+            {{ t('settings.appearance') }}
           </h3>
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium mb-0.5" style="color: var(--text-primary)">深色模式</div>
-              <div class="text-xs" style="color: var(--text-muted)">切换浅色/深色主题</div>
+              <div class="text-sm font-medium mb-0.5" style="color: var(--text-primary)">{{ t('settings.darkMode') }}</div>
+              <div class="text-xs" style="color: var(--text-muted)">{{ t('settings.darkModeDesc') }}</div>
             </div>
             <button @click="toggleTheme"
               class="relative w-12 h-7 rounded-full transition-colors"
@@ -548,7 +550,7 @@ onMounted(() => {
         <button @click="handleSave" :disabled="loading"
           class="w-full py-3 bg-[#ea580c] hover:bg-[#c2410c] text-white font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20 disabled:opacity-50"
         >
-          {{ loading ? '保存中...' : '保存设置' }}
+          {{ loading ? t('common.saving') : t('settings.saveSettings') }}
         </button>
       </div>
     </div>
@@ -564,7 +566,7 @@ onMounted(() => {
       >
         <div class="flex items-center justify-between mb-5">
           <h3 class="font-semibold text-lg" style="color: var(--text-primary)">
-            {{ editingProvider ? '编辑AI配置' : '添加AI配置' }}
+            {{ editingProvider ? t('settings.editProvider') : t('settings.addProvider') }}
           </h3>
           <button @click="showAiProviderModal = false"
             class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
@@ -576,16 +578,16 @@ onMounted(() => {
 
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">配置名称</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.providerName') }}</label>
             <input v-model="aiProviderForm.name" type="text"
               class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
               style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              placeholder="例如：我的OpenAI"
+              :placeholder="t('settings.providerNamePlaceholder')"
             >
           </div>
 
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">提供商</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.providerType') }}</label>
             <select v-model="aiProviderForm.provider" @change="onProviderChange"
               class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
               style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
@@ -597,7 +599,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">API Base URL</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.apiBaseUrl') }}</label>
             <input v-model="aiProviderForm.apiBaseUrl" type="text"
               class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
               style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
@@ -607,8 +609,8 @@ onMounted(() => {
 
           <div>
             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">
-              API Key
-              <span v-if="editingProvider" class="text-[10px] ml-1" style="color: var(--text-muted)">(留空则保持不变)</span>
+              {{ t('settings.apiKey') }}
+              <span v-if="editingProvider" class="text-[10px] ml-1" style="color: var(--text-muted)">({{ t('settings.leaveEmpty') }})</span>
             </label>
             <div class="relative">
               <input v-model="aiProviderForm.apiKey" :type="showAiProviderApiKey ? 'text' : 'password'"
@@ -627,7 +629,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">模型</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.model') }}</label>
             <div class="flex gap-2">
               <select v-if="currentProvider?.models?.length" v-model="aiProviderForm.model"
                 class="flex-1 px-4 py-2.5 rounded-xl text-sm transition-all"
@@ -639,7 +641,7 @@ onMounted(() => {
                 class="flex-1 px-4 py-2.5 rounded-xl text-sm transition-all"
                 :class="currentProvider?.models?.length ? 'hidden' : ''"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="输入模型名称"
+                :placeholder="t('settings.modelPlaceholder')"
               >
             </div>
           </div>
@@ -649,7 +651,7 @@ onMounted(() => {
               class="w-4 h-4 rounded"
               style="accent-color: var(--accent);"
             >
-            <label for="isDefault" class="text-sm" style="color: var(--text-primary)">设为默认配置</label>
+            <label for="isDefault" class="text-sm" style="color: var(--text-primary)">{{ t('settings.setAsDefault') }}</label>
           </div>
         </div>
 
@@ -658,13 +660,13 @@ onMounted(() => {
             class="flex-1 py-2.5 font-medium rounded-xl border transition-all"
             style="border-color: var(--border-color); color: var(--text-secondary);"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button @click="handleSaveAiProvider" :disabled="aiProviderLoading"
             class="flex-1 py-2.5 font-medium rounded-xl transition-all"
             style="background: var(--accent); color: white;"
           >
-            {{ aiProviderLoading ? '保存中...' : '保存' }}
+            {{ aiProviderLoading ? t('common.saving') : t('common.save') }}
           </button>
         </div>
       </div>
@@ -684,7 +686,7 @@ onMounted(() => {
         <div class="flex items-center justify-between mb-5">
           <h3 class="font-semibold text-lg flex items-center gap-2" style="color: var(--text-primary)">
             <Lock class="w-5 h-5" style="color: var(--accent)" />
-            修改密码
+            {{ t('settings.changePassword') }}
           </h3>
           <button @click="closePasswordModal"
             class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
@@ -696,12 +698,12 @@ onMounted(() => {
 
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">当前密码</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.currentPassword') }}</label>
             <div class="relative">
               <input v-model="passwordForm.currentPassword" :type="showCurrentPassword ? 'text' : 'password'"
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="请输入当前密码"
+                :placeholder="t('settings.currentPasswordPlaceholder')"
               >
               <button @click="showCurrentPassword = !showCurrentPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -714,12 +716,12 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">新密码</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.newPassword') }}</label>
             <div class="relative">
               <input v-model="passwordForm.newPassword" :type="showNewPassword ? 'text' : 'password'"
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="请输入新密码（至少6位）"
+                :placeholder="t('settings.newPasswordPlaceholder')"
               >
               <button @click="showNewPassword = !showNewPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -732,12 +734,12 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">确认新密码</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('settings.confirmPassword') }}</label>
             <div class="relative">
               <input v-model="passwordForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
                 class="w-full px-4 py-2.5 rounded-xl text-sm pr-10 transition-all"
                 style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                placeholder="请再次输入新密码"
+                :placeholder="t('settings.confirmPasswordPlaceholder')"
               >
               <button @click="showConfirmPassword = !showConfirmPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2"
@@ -755,13 +757,13 @@ onMounted(() => {
             class="flex-1 py-2.5 font-medium rounded-xl border transition-all"
             style="border-color: var(--border-color); color: var(--text-secondary);"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button @click="handleChangePassword" :disabled="passwordLoading"
             class="flex-1 py-2.5 font-medium rounded-xl transition-all"
             style="background: var(--accent); color: white;"
           >
-            {{ passwordLoading ? '修改中...' : '确认修改' }}
+            {{ passwordLoading ? t('common.changing') : t('settings.confirmChange') }}
           </button>
         </div>
       </div>

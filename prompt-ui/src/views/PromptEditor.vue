@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toast'
+import { useI18n } from 'vue-i18n'
 import MainLayout from '@/components/MainLayout.vue'
 import { createPrompt, updatePrompt, getPrompt } from '@/api/prompt'
 import { getCategoryTree } from '@/api/category'
@@ -37,6 +38,7 @@ marked.use({
 const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
+const { t } = useI18n()
 const isEdit = computed(() => !!route.params.id)
 const promptId = computed(() => Number(route.params.id))
 
@@ -242,9 +244,9 @@ function flattenCategories(cats: Category[]): Category[] {
 
 // 获取分类的完整路径名称
 function getCategoryPathName(catId: number | null): string {
-  if (!catId) return '未分类'
+  if (!catId) return t('prompt.uncategorized')
   const cat = categories.value.find(c => c.id === catId)
-  if (!cat) return '未分类'
+  if (!cat) return t('prompt.uncategorized')
 
   const path: string[] = [cat.name]
   let current = cat
@@ -292,11 +294,11 @@ async function loadPrompt() {
 
 async function handleSave() {
   if (!title.value.trim()) {
-    toastStore.warning('请输入提示词标题')
+    toastStore.warning(t('prompt.titleRequired'))
     return
   }
   if (!content.value.trim()) {
-    toastStore.warning('请输入提示词内容')
+    toastStore.warning(t('prompt.contentRequired'))
     return
   }
   loading.value = true
@@ -311,14 +313,14 @@ async function handleSave() {
     }
     if (isEdit.value) {
       await updatePrompt(promptId.value, data)
-      toastStore.success('提示词已更新')
+      toastStore.success(t('prompt.updateSuccess'))
     } else {
       await createPrompt(data)
-      toastStore.success('提示词已创建')
+      toastStore.success(t('prompt.createSuccess'))
     }
     setTimeout(() => router.push('/prompts'), 800)
   } catch (e: any) {
-    toastStore.error(e.message || '保存失败')
+    toastStore.error(e.message || t('prompt.saveFailed'))
   } finally {
     loading.value = false
   }
@@ -331,9 +333,9 @@ function handleCopy() {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      toastStore.success('已复制到剪贴板')
+      toastStore.success(t('prompt.copySuccess'))
     }).catch(() => {
-      toastStore.error('复制失败，请手动复制')
+      toastStore.error(t('common.copyFailed'))
     })
   } else {
     const textarea = document.createElement('textarea')
@@ -345,9 +347,9 @@ function handleCopy() {
     const success = document.execCommand('copy')
     document.body.removeChild(textarea)
     if (success) {
-      toastStore.success('已复制到剪贴板')
+      toastStore.success(t('prompt.copySuccess'))
     } else {
-      toastStore.error('复制失败，请手动复制')
+      toastStore.error(t('common.copyFailed'))
     }
   }
 }
@@ -534,11 +536,11 @@ async function confirmRollback() {
   if (!rollbackVersion.value) return
   try {
     await rollbackPrompt(promptId.value, rollbackVersion.value)
-    toastStore.success('已回滚到指定版本')
+    toastStore.success(t('prompt.rollbackSuccess'))
     await loadPrompt()
     await loadHistory()
   } catch (e: any) {
-    toastStore.error(e.message || '回滚失败')
+    toastStore.error(e.message || t('prompt.rollbackFailed'))
   } finally {
     rollbackVersion.value = null
   }
@@ -562,10 +564,10 @@ onUnmounted(() => {
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">
-            {{ isEdit ? '编辑提示词' : '新建提示词' }}
+            {{ isEdit ? t('prompt.editPrompt') : t('prompt.createPrompt') }}
           </h2>
           <p class="text-sm" style="color: var(--text-secondary)">
-            {{ isEdit ? '修改并更新你的提示词模板' : '创建并测试你的提示词模板' }}
+            {{ isEdit ? t('prompt.updatePrompt') : t('prompt.createPromptDesc') }}
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -575,13 +577,13 @@ onUnmounted(() => {
             style="border-color: var(--border-color);"
           >
             <History class="w-4 h-4" />
-            历史版本
+            {{ t('prompt.historyVersion') }}
           </button>
           <button @click="handleSave" :disabled="loading"
             class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20 disabled:opacity-50"
           >
             <Save class="w-4 h-4" />
-            {{ loading ? '保存中...' : '保存' }}
+            {{ loading ? t('common.saving') : t('common.save') }}
           </button>
         </div>
       </div>
@@ -590,11 +592,11 @@ onUnmounted(() => {
         <!-- Editor panel -->
         <div class="space-y-5">
           <div>
-            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">标题</label>
+            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('common.title') }}</label>
             <input v-model="title" type="text"
               class="w-full px-4 py-3 rounded-xl text-base font-medium transition-all"
               style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              placeholder="给你的提示词起个名字..."
+              :placeholder="t('prompt.titlePlaceholder')"
               @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
               @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
             >
@@ -602,7 +604,7 @@ onUnmounted(() => {
 
           <div class="flex gap-4">
             <div class="flex-1 relative" ref="categoryDropdownRef">
-              <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">分类</label>
+              <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('common.category') }}</label>
               <button
                 @click.stop="showCategoryDropdown = !showCategoryDropdown"
                 class="w-full px-4 py-2.5 rounded-xl text-sm transition-all text-left flex items-center justify-between"
@@ -641,7 +643,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="flex-1 relative" ref="tagDropdownRef">
-              <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">标签</label>
+              <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('common.tag') }}</label>
               <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 rounded-lg text-sm transition-all"
                 :style="{ borderColor: tagInputFocused ? 'var(--accent)' : 'var(--border-color)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }"
               >
@@ -657,7 +659,7 @@ onUnmounted(() => {
                 <input v-model="newTagInput" type="text"
                   class="flex-1 min-w-[80px] px-2 py-1 bg-transparent text-sm outline-none"
                   style="color: var(--text-primary);"
-                  placeholder="搜索或新建标签"
+                  :placeholder="t('prompt.tagPlaceholder')"
                   @keydown="handleTagKeydown"
                   @focus="handleTagInputFocus"
                   @blur="handleTagInputBlur"
@@ -700,24 +702,24 @@ onUnmounted(() => {
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-medium" style="color: var(--text-secondary)">提示词内容</label>
+              <label class="block text-xs font-medium" style="color: var(--text-secondary)">{{ t('prompt.content') }}</label>
               <div class="flex items-center gap-2">
                 <button @click="showOptimizer = true"
                   class="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all hover:opacity-80"
                   style="background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(234, 88, 12, 0.15) 100%); color: var(--accent); border: 1px solid var(--accent);"
                 >
                   <Sparkles class="w-3 h-3" />
-                  AI优化
+                  {{ t('prompt.aiOptimize') }}
                 </button>
                 <span class="text-[10px] px-2 py-1 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted)">
-                  使用 <code v-pre style="color: var(--accent); font-family: monospace; font-size: 0.85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px;">{{变量名}}</code> 插入变量
+                  {{ t('prompt.variableTip') }}
                 </span>
               </div>
             </div>
             <textarea v-model="content"
               class="w-full px-4 py-4 rounded-xl transition-all"
               style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 16px; line-height: 1.7; resize: vertical; min-height: 300px;"
-              placeholder="在这里输入你的提示词模板..."
+              :placeholder="t('prompt.contentPlaceholder')"
               @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
               @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
             >
@@ -726,14 +728,14 @@ onUnmounted(() => {
 
           <!-- Variable inputs -->
           <div v-if="extractedVars.length > 0">
-            <label class="block text-xs font-medium mb-3" style="color: var(--text-secondary)">填写变量值</label>
+            <label class="block text-xs font-medium mb-3" style="color: var(--text-secondary)">{{ t('prompt.fillVariables') }}</label>
             <div class="grid grid-cols-1 gap-3">
               <div v-for="v in extractedVars" :key="v">
                 <label class="block text-[10px] font-medium uppercase tracking-wider mb-1.5" style="color: var(--text-muted)">{{ v }}</label>
                 <VariableInput
                   :name="v"
                   v-model="variableValues[v]"
-                  :placeholder="`输入 ${v}...`"
+                  :placeholder="t('prompt.variableInputPlaceholder', { name: v })"
                 />
               </div>
             </div>
@@ -753,20 +755,20 @@ onUnmounted(() => {
               style="border-color: var(--accent); color: var(--accent);"
             >
               <Play class="w-4 h-4" />
-              测试运行
+              {{ t('prompt.testRun') }}
             </button>
             <button v-else @click="handleStopTest"
               class="flex items-center gap-1.5 px-4 py-2 border-2 text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
               style="border-color: #dc2626; color: #dc2626;"
             >
               <Square class="w-4 h-4" />
-              停止生成
+              {{ t('prompt.stopGenerating') }}
             </button>
             <button @click="clearEditor"
               class="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
               style="color: var(--text-secondary);"
             >
-              清空
+              {{ t('common.clear') }}
             </button>
           </div>
 
@@ -774,10 +776,10 @@ onUnmounted(() => {
           <div v-if="showHistory && isEdit" class="rounded-2xl p-5 mt-4" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
             <h3 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color: var(--text-primary)">
               <History class="w-4 h-4" style="color: var(--accent)" />
-              版本历史
+              {{ t('prompt.versionHistory') }}
             </h3>
-            <div v-if="historyLoading" class="text-xs py-2" style="color: var(--text-muted)">加载中...</div>
-            <div v-else-if="historyList.length === 0" class="text-xs py-2" style="color: var(--text-muted)">暂无历史版本</div>
+            <div v-if="historyLoading" class="text-xs py-2" style="color: var(--text-muted)">{{ t('common.loading') }}</div>
+            <div v-else-if="historyList.length === 0" class="text-xs py-2" style="color: var(--text-muted)">{{ t('prompt.noHistory') }}</div>
             <div v-else class="space-y-2 max-h-[300px] overflow-y-auto">
               <div v-for="h in historyList" :key="h.id"
                 class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs"
@@ -791,18 +793,18 @@ onUnmounted(() => {
                   <button @click="handleViewHistory(h)"
                     class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                     style="color: var(--text-secondary);"
-                    title="查看内容"
+                    :title="t('prompt.viewContent')"
                   >
                     <Eye class="w-3 h-3" />
-                    查看
+                    {{ t('common.view') }}
                   </button>
                   <button @click="handleRollback(h.version)"
                     class="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                     style="color: var(--accent);"
-                    title="回滚到此版本"
+                    :title="t('prompt.rollbackTitle')"
                   >
                     <RotateCcw class="w-3 h-3" />
-                    回滚
+                    {{ t('prompt.rollback') }}
                   </button>
                 </div>
               </div>
@@ -814,7 +816,7 @@ onUnmounted(() => {
         <div class="flex flex-col gap-4 self-start" style="position: sticky; top: 24px;">
           <!-- Preview -->
           <div>
-            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">实时预览</label>
+            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('prompt.livePreview') }}</label>
             <div class="rounded-2xl p-6 min-h-[400px] relative transition-all"
               style="background: var(--bg-secondary); border: 1px solid var(--border-color); line-height: 1.8;"
             >
@@ -824,10 +826,10 @@ onUnmounted(() => {
                   style="color: var(--text-muted); border: 1px solid var(--border-color);"
                 >
                   <Copy class="w-3.5 h-3.5" />
-                  复制
+                  {{ t('common.copy') }}
                 </button>
               </div>
-              <div class="pt-8 text-base preview-content" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || '<span style=\'color: var(--text-muted); font-style: italic;\'>提示词预览将在这里显示...</span>'">
+              <div class="pt-8 text-base preview-content" style="white-space: pre-wrap; color: var(--text-primary);" v-html="previewContent || `<span style='color: var(--text-muted); font-style: italic;'>${t('prompt.previewPlaceholder')}</span>`">
               </div>
             </div>
           </div>
@@ -848,16 +850,16 @@ onUnmounted(() => {
                     <path d="M2 12l10 5 10-5" />
                   </svg>
                 </div>
-                <span class="text-xs font-medium" style="color: var(--text-primary)">AI 响应</span>
-                <span v-if="aiLoading" class="text-[10px] px-2 py-0.5 rounded-full animate-pulse" style="background: var(--accent-soft); color: var(--accent);">生成中...</span>
+                <span class="text-xs font-medium" style="color: var(--text-primary)">{{ t('prompt.aiResponse') }}</span>
+                <span v-if="aiLoading" class="text-[10px] px-2 py-0.5 rounded-full animate-pulse" style="background: var(--accent-soft); color: var(--accent);">{{ t('prompt.generating') }}</span>
               </div>
               <button v-if="aiLoading" @click="handleStopTest"
                 class="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all"
                 style="background: rgba(220, 38, 38, 0.08); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.25);"
-                title="停止生成"
+                :title="t('prompt.stopGenerating')"
               >
                 <Square class="w-3 h-3" />
-                停止
+                {{ t('common.stop') }}
               </button>
             </div>
 
@@ -867,9 +869,9 @@ onUnmounted(() => {
             >
               <div v-if="!aiResult && aiLoading" class="flex items-center gap-2 text-sm" style="color: var(--text-muted);">
                 <div class="w-4 h-4 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
-                正在等待 AI 响应...
+                {{ t('prompt.waitingForAi') }}
               </div>
-              <div v-else-if="!aiResult && !aiLoading" class="text-sm" style="color: var(--text-muted);">点击"测试运行"查看 AI 响应</div>
+              <div v-else-if="!aiResult && !aiLoading" class="text-sm" style="color: var(--text-muted);">{{ t('prompt.clickToTest') }}</div>
               <div v-else class="text-sm leading-relaxed ai-markdown ai-message-bubble" style="color: var(--text-primary);" v-html="renderedAiResult"></div>
             </div>
           </div>
@@ -880,9 +882,9 @@ onUnmounted(() => {
     <!-- Rollback Confirm Dialog -->
     <DeleteConfirmDialog
       v-model="rollbackDialogVisible"
-      title="确认回滚"
-      :description="`确定要回滚到版本 ${rollbackVersion} 吗？当前内容将被替换，此操作不可恢复。`"
-      confirm-text="回滚"
+      :title="t('prompt.confirmRollback')"
+      :description="t('prompt.rollbackDescription', { version: rollbackVersion })"
+      :confirm-text="t('prompt.rollback')"
       @confirm="confirmRollback"
     />
 
@@ -894,7 +896,7 @@ onUnmounted(() => {
           <div class="flex items-center gap-3">
             <History class="w-5 h-5" style="color: var(--accent)" />
             <h3 class="text-base font-semibold" style="color: var(--text-primary)">
-              版本 v{{ viewingHistory?.version }} 内容
+              {{ t('prompt.versionContent', { version: viewingHistory?.version }) }}
             </h3>
             <span class="text-xs px-2 py-0.5 rounded-md" style="background: var(--bg-tertiary); color: var(--text-muted);">
               {{ viewingHistory ? new Date(viewingHistory.createdAt).toLocaleString() : '' }}
@@ -913,10 +915,10 @@ onUnmounted(() => {
         <!-- Footer -->
         <div class="flex items-center justify-end gap-3 px-6 py-4" style="border-top: 1px solid var(--border-color);">
           <button @click="viewHistoryDialogVisible = false" class="px-4 py-2 text-sm font-medium rounded-xl transition-colors" style="background: var(--bg-tertiary); color: var(--text-secondary);">
-            关闭
+            {{ t('common.close') }}
           </button>
           <button v-if="viewingHistory" @click="() => { viewHistoryDialogVisible = false; handleRollback(viewingHistory!.version); }" class="px-4 py-2 text-sm font-medium rounded-xl transition-colors" style="background: var(--accent); color: white;">
-            回滚到此版本
+            {{ t('prompt.rollbackToVersion') }}
           </button>
         </div>
       </div>

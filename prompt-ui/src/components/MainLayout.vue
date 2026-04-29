@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { debounce } from '@/utils/debounce'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { getLocale } from '@/i18n'
+import { useLanguageTransition } from '@/composables/useLanguageTransition'
 import {
   Sparkles, LayoutDashboard, FileText, PenTool,
   FolderTree, Tag, Settings, Menu, X, LogOut,
-  Search, Sun, Moon, Bell, ChevronLeft, ChevronRight
+  Search, Sun, Moon, Bell, ChevronLeft, ChevronRight,
+  Languages
 } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const router = useRouter()
@@ -84,17 +90,25 @@ watch(searchQuery, () => {
   handleSearch()
 })
 
+const currentLocale = ref(getLocale())
+const { toggleLocaleWithTransition } = useLanguageTransition()
+
+async function handleToggleLocale() {
+  const newLocale = await toggleLocaleWithTransition()
+  currentLocale.value = newLocale
+}
+
 const currentRoute = computed(() => route.path)
-const navItems = [
-  { path: '/dashboard', label: '控制台', icon: LayoutDashboard },
-  { path: '/prompts', label: '提示词库', icon: FileText },
-  { path: '/editor', label: '新建提示词', icon: PenTool },
-]
-const manageItems = [
-  { path: '/categories', label: '分类管理', icon: FolderTree },
-  { path: '/tags', label: '标签管理', icon: Tag },
-  { path: '/settings', label: '设置', icon: Settings },
-]
+const navItems = computed(() => [
+  { path: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+  { path: '/prompts', label: t('nav.promptLibrary'), icon: FileText },
+  { path: '/editor', label: t('nav.newPrompt'), icon: PenTool },
+])
+const manageItems = computed(() => [
+  { path: '/categories', label: t('nav.categoryManage'), icon: FolderTree },
+  { path: '/tags', label: t('nav.tagManage'), icon: Tag },
+  { path: '/settings', label: t('nav.settings'), icon: Settings },
+])
 
 watch(() => route.query.q, (q) => {
   if (q) searchQuery.value = q as string
@@ -133,7 +147,7 @@ watch(() => route.query.q, (q) => {
         @click="toggleSidebarCollapse"
         class="hidden lg:flex items-center justify-center py-2 mx-3 mb-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
         style="color: var(--text-muted)"
-        :title="sidebarCollapsed ? '展开菜单' : '收起菜单'"
+        :title="sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
       >
         <ChevronLeft v-if="!sidebarCollapsed" class="w-4 h-4" />
         <ChevronRight v-else class="w-4 h-4" />
@@ -141,7 +155,7 @@ watch(() => route.query.q, (q) => {
 
       <!-- Navigation -->
       <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
-        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2" style="color: var(--text-muted)">工作区</div>
+        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2" style="color: var(--text-muted)">{{ t('nav.workspace') }}</div>
         <a v-for="item in navItems" :key="item.path" href="#"
           class="nav-item flex items-center text-sm font-medium"
           :class="[
@@ -156,7 +170,7 @@ watch(() => route.query.q, (q) => {
           <span v-if="!sidebarCollapsed" class="truncate">{{ item.label }}</span>
         </a>
 
-        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2 mt-4" style="color: var(--text-muted)">管理</div>
+        <div v-if="!sidebarCollapsed" class="text-[10px] font-semibold uppercase tracking-wider px-3 py-2 mt-4" style="color: var(--text-muted)">{{ t('nav.management') }}</div>
         <a v-for="item in manageItems" :key="item.path" href="#"
           class="nav-item flex items-center text-sm font-medium"
           :class="[
@@ -188,8 +202,8 @@ watch(() => route.query.q, (q) => {
             {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate" style="color: var(--text-primary)">{{ userStore.user?.username || '用户' }}</div>
-            <div class="text-xs truncate" style="color: var(--text-muted)">Pro 计划</div>
+            <div class="text-sm font-medium truncate" style="color: var(--text-primary)">{{ userStore.user?.username || t('user.username') }}</div>
+            <div class="text-xs truncate" style="color: var(--text-muted)">{{ t('user.plan') }}</div>
           </div>
         </div>
         <button @click="handleLogout"
@@ -197,7 +211,7 @@ watch(() => route.query.q, (q) => {
           style="color: var(--text-secondary)"
         >
           <LogOut class="w-3.5 h-3.5" />
-          退出登录
+          {{ t('user.logout') }}
         </button>
       </div>
 
@@ -207,7 +221,7 @@ watch(() => route.query.q, (q) => {
           @click="handleLogout"
           class="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
           style="background: var(--bg-tertiary); color: var(--text-secondary)"
-          title="退出登录"
+          :title="t('user.logout')"
         >
           <LogOut class="w-4 h-4" />
         </button>
@@ -230,7 +244,7 @@ watch(() => route.query.q, (q) => {
           <input v-model="searchQuery" type="text"
             class="w-full pl-10 pr-4 py-2 rounded-xl text-sm transition-all"
             style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
-            placeholder="搜索提示词、标签、内容..."
+            :placeholder="t('common.search')"
             @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
             @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
           >
@@ -240,11 +254,22 @@ watch(() => route.query.q, (q) => {
           <button @click="toggleTheme"
             class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
             style="color: var(--text-secondary)"
+            :title="t('theme.toggle')"
             @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
             @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
           >
             <Sun v-if="userStore.theme === 'dark'" class="w-4 h-4" />
             <Moon v-else class="w-4 h-4" />
+          </button>
+          <!-- Language Switch Button -->
+          <button @click="handleToggleLocale"
+            class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+            style="color: var(--text-secondary)"
+            :title="t('language.toggle')"
+            @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
+            @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
+          >
+            <Languages class="w-4 h-4" />
           </button>
           <!-- <button class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors relative"
             style="color: var(--text-secondary)"
@@ -265,9 +290,9 @@ watch(() => route.query.q, (q) => {
     <!-- Logout Confirm Dialog -->
     <DeleteConfirmDialog
       v-model="logoutDialogVisible"
-      title="确认退出"
-      description="确定要退出登录吗？"
-      confirm-text="退出登录"
+      :title="t('user.logout')"
+      :description="t('user.logoutConfirm')"
+      :confirm-text="t('user.logout')"
       @confirm="confirmLogout"
     />
   </div>

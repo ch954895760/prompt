@@ -5,6 +5,9 @@ import { aiTestStream } from '@/api/setting'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 marked.use({
   renderer: {
@@ -113,7 +116,7 @@ function sendMessage() {
 
   const fullContext = messages.value
     .filter(m => !m.loading)
-    .map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`)
+    .map(m => `${m.role === 'user' ? t('ai.user') : 'AI'}: ${m.content}`)
     .join('\n\n')
 
   let currentContent = ''
@@ -141,7 +144,7 @@ function sendMessage() {
       aiAbort.value = null
       const lastMessage = messages.value[messages.value.length - 1]
       if (lastMessage) {
-        lastMessage.content = `错误: ${error}`
+        lastMessage.content = `${t('common.error')}: ${error}`
         lastMessage.loading = false
       }
       scrollToBottom()
@@ -188,7 +191,7 @@ watch(() => props.modelValue, (newVal) => {
           aiAbort.value = null
           const lastMessage = messages.value[messages.value.length - 1]
           if (lastMessage) {
-            lastMessage.content = `错误: ${error}`
+            lastMessage.content = `${t('common.error')}: ${error}`
             lastMessage.loading = false
           }
           scrollToBottom()
@@ -225,8 +228,8 @@ watch(() => props.modelValue, (newVal) => {
                 <Bot class="w-4 h-4" style="color: var(--accent);" />
               </div>
               <div>
-                <h3 class="text-sm font-semibold" style="color: var(--text-primary)">AI 对话测试</h3>
-                <p class="text-xs" style="color: var(--text-muted)">基于当前提示词进行对话</p>
+                <h3 class="text-sm font-semibold" style="color: var(--text-primary)">{{ t('ai.testDialogTitle') }}</h3>
+                <p class="text-xs" style="color: var(--text-muted)">{{ t('ai.testDialogSubtitle') }}</p>
               </div>
             </div>
             <button @click="close"
@@ -246,7 +249,7 @@ watch(() => props.modelValue, (newVal) => {
               >
                 <Bot class="w-8 h-8" style="color: var(--text-muted);" />
               </div>
-              <p class="text-sm" style="color: var(--text-secondary)">点击"测试运行"开始与 AI 对话</p>
+              <p class="text-sm" style="color: var(--text-secondary)">{{ t('ai.clickToStart') }}</p>
             </div>
 
             <div v-for="(message, index) in messages" :key="index"
@@ -275,7 +278,7 @@ watch(() => props.modelValue, (newVal) => {
 
                   <div v-if="message.loading" class="flex items-center gap-2 mt-2">
                     <div class="w-4 h-4 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-xs" style="color: var(--text-muted)">生成中...</span>
+                    <span class="text-xs" style="color: var(--text-muted)">{{ t('ai.generating') }}</span>
                   </div>
 
                   <!-- 复制按钮 -->
@@ -288,7 +291,7 @@ watch(() => props.modelValue, (newVal) => {
                   >
                     <Check v-if="copiedMessageIndex === index" class="w-3 h-3 text-emerald-500" />
                     <Copy v-else class="w-3 h-3" />
-                    {{ copiedMessageIndex === index ? '已复制' : '复制' }}
+                    {{ copiedMessageIndex === index ? t('common.copied') : t('common.copy') }}
                   </button>
                 </div>
               </div>
@@ -301,7 +304,7 @@ watch(() => props.modelValue, (newVal) => {
                 <textarea
                   v-model="inputMessage"
                   @keydown="handleKeydown"
-                  placeholder="输入消息与 AI 对话..."
+                  :placeholder="t('ai.inputPlaceholder')"
                   class="w-full px-4 py-3 pr-12 rounded-xl text-sm resize-none"
                   style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); min-height: 48px; max-height: 120px;"
                   :disabled="aiLoading"
@@ -323,7 +326,7 @@ watch(() => props.modelValue, (newVal) => {
                 <Square class="w-5 h-5" />
               </button>
             </div>
-            <p class="text-xs mt-2" style="color: var(--text-muted)">按 Enter 发送，Shift + Enter 换行</p>
+            <p class="text-xs mt-2" style="color: var(--text-muted)">{{ t('ai.sendHint') }}</p>
           </div>
         </div>
       </div>

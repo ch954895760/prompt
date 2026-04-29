@@ -3,6 +3,9 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { Sparkles, X, Check, AlertCircle, Lightbulb, Layers, Eye, FileText, Star, Columns, RefreshCw, ChevronDown, ChevronUp, Clock, Cpu, Hash } from 'lucide-vue-next'
 import type { PromptOptimizeResponse, OptimizeSuggestion } from '@/types'
 import { optimizePrompt } from '@/api/promptOptimizer'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
@@ -39,11 +42,11 @@ const scoreBgColor = computed(() => {
 
 const scoreLabel = computed(() => {
   const score = optimizeResult.value?.score || 0
-  if (score >= 9) return '优秀'
-  if (score >= 8) return '良好'
-  if (score >= 6) return '一般'
-  if (score >= 4) return '需改进'
-  return '较差'
+  if (score >= 9) return t('optimizer.excellent')
+  if (score >= 8) return t('optimizer.good')
+  if (score >= 6) return t('optimizer.average')
+  if (score >= 4) return t('optimizer.needsImprovement')
+  return t('optimizer.poor')
 })
 
 const scoreProgressWidth = computed(() => {
@@ -77,10 +80,10 @@ function getSuggestionIcon(type: string) {
 
 function getSuggestionTypeLabel(type: string) {
   switch (type) {
-    case 'structure': return '结构优化'
-    case 'clarity': return '清晰度改进'
-    case 'example': return '示例补充'
-    default: return '优化建议'
+    case 'structure': return t('optimizer.structureOptimization')
+    case 'clarity': return t('optimizer.clarityImprovement')
+    case 'example': return t('optimizer.exampleSupplement')
+    default: return t('optimizer.optimizationSuggestion')
   }
 }
 
@@ -104,10 +107,10 @@ function getPriorityBgColor(priority: string) {
 
 function getPriorityLabel(priority: string) {
   switch (priority) {
-    case 'high': return '高优先级'
-    case 'medium': return '中优先级'
-    case 'low': return '低优先级'
-    default: return '一般'
+    case 'high': return t('optimizer.highPriority')
+    case 'medium': return t('optimizer.mediumPriority')
+    case 'low': return t('optimizer.lowPriority')
+    default: return t('optimizer.normal')
   }
 }
 
@@ -136,7 +139,7 @@ function stopWaitTimer() {
 
 async function handleOptimize(forceRefresh = false) {
   if (!props.currentPrompt.trim()) {
-    error.value = '请先输入提示词内容'
+    error.value = t('optimizer.enterPromptFirst')
     return
   }
 
@@ -153,7 +156,7 @@ async function handleOptimize(forceRefresh = false) {
       forceRefresh: forceRefresh
     })
   } catch (e: any) {
-    error.value = e.message || '优化失败，请重试'
+    error.value = e.message || t('optimizer.optimizeFailed')
   } finally {
     loading.value = false
     stopWaitTimer()
@@ -210,8 +213,8 @@ watch(() => props.modelValue, (newVal) => {
                 <Sparkles class="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 class="text-base font-semibold" style="color: var(--text-primary)">提示词优化助手</h3>
-                <p class="text-xs" style="color: var(--text-muted)">AI 辅助分析和优化提示词</p>
+                <h3 class="text-base font-semibold" style="color: var(--text-primary)">{{ t('optimizer.title') }}</h3>
+                <p class="text-xs" style="color: var(--text-muted)">{{ t('optimizer.subtitle') }}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -221,7 +224,7 @@ watch(() => props.modelValue, (newVal) => {
                 :disabled="loading"
                 @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
                 @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
-                title="重新分析"
+                :title="t('optimizer.reanalyze')"
               >
                 <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
               </button>
@@ -245,10 +248,10 @@ watch(() => props.modelValue, (newVal) => {
               >
                 <Sparkles class="w-8 h-8 animate-pulse" style="color: var(--accent);" />
               </div>
-              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">正在分析提示词...</p>
-              <p class="text-xs" style="color: var(--text-muted)">AI 正在评估质量和生成优化建议</p>
+              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">{{ t('optimizer.analyzing') }}</p>
+              <p class="text-xs" style="color: var(--text-muted)">{{ t('optimizer.aiEvaluating') }}</p>
               <p v-if="waitSeconds > 10" class="text-xs mt-2 font-medium" style="color: var(--accent);">
-                已等待 {{ waitSeconds }} 秒
+                {{ t('optimizer.waited') }} {{ waitSeconds }} {{ t('optimizer.seconds') }}
               </p>
             </div>
 
@@ -259,13 +262,13 @@ watch(() => props.modelValue, (newVal) => {
               >
                 <AlertCircle class="w-8 h-8" style="color: #ef4444;" />
               </div>
-              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">分析失败</p>
+              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">{{ t('optimizer.analysisFailed') }}</p>
               <p class="text-xs text-center max-w-[300px]" style="color: var(--text-muted)">{{ error }}</p>
               <button @click="handleOptimize(true)"
                 class="mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style="background: var(--accent); color: white;"
               >
-                重试
+                {{ t('common.retry') }}
               </button>
             </div>
 
@@ -278,12 +281,12 @@ watch(() => props.modelValue, (newVal) => {
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2">
                     <Star class="w-5 h-5" :style="{ color: scoreColor }" />
-                    <span class="text-sm font-medium" style="color: var(--text-primary)">质量评分</span>
+                    <span class="text-sm font-medium" style="color: var(--text-primary)">{{ t('optimizer.qualityScore') }}</span>
                   </div>
                   <span v-if="optimizeResult.fromCache" class="text-[10px] px-2 py-0.5 rounded-full"
                     style="background: var(--bg-secondary); color: var(--text-muted);"
                   >
-                    来自缓存
+                    {{ t('optimizer.fromCache') }}
                   </span>
                 </div>
                 <div class="flex items-end gap-2 mb-2">
@@ -308,21 +311,21 @@ watch(() => props.modelValue, (newVal) => {
                 <div class="flex items-center gap-4 mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
                   <div class="flex items-center gap-1.5">
                     <Clock class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">耗时</span>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.timeSpent') }}</span>
                     <span class="text-xs font-medium" style="color: var(--text-primary);">
                       {{ formatOptimizationTime(optimizeResult.optimizationTime) }}
                     </span>
                   </div>
                   <div class="flex items-center gap-1.5">
                     <Cpu class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">模型</span>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.model') }}</span>
                     <span class="text-xs font-medium truncate max-w-[120px]" style="color: var(--text-primary);">
                       {{ optimizeResult.modelUsed || '-' }}
                     </span>
                   </div>
                   <div class="flex items-center gap-1.5">
                     <Hash class="w-3.5 h-3.5" style="color: var(--text-muted);" />
-                    <span class="text-xs" style="color: var(--text-muted);">Token</span>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ t('optimizer.token') }}</span>
                     <span class="text-xs font-medium" style="color: var(--text-primary);">
                       {{ formatTokens(optimizeResult.tokensConsumed) }}
                     </span>
@@ -334,7 +337,7 @@ watch(() => props.modelValue, (newVal) => {
               <div>
                 <h4 class="text-sm font-medium mb-3 flex items-center gap-2" style="color: var(--text-primary)">
                   <Lightbulb class="w-4 h-4" style="color: var(--accent);" />
-                  优化建议
+                  {{ t('optimizer.suggestions') }}
                 </h4>
                 <div class="space-y-3">
                   <div v-for="(suggestion, index) in optimizeResult.suggestions" :key="index"
@@ -390,13 +393,13 @@ watch(() => props.modelValue, (newVal) => {
                 <div class="flex items-center justify-between mb-3">
                   <h4 class="text-sm font-medium flex items-center gap-2" style="color: var(--text-primary)">
                     <Columns class="w-4 h-4" style="color: var(--accent);" />
-                    优化对比
+                    {{ t('optimizer.comparison') }}
                   </h4>
                   <button @click="showComparison = !showComparison"
                     class="text-xs flex items-center gap-1 transition-colors"
                     style="color: var(--accent);"
                   >
-                    {{ showComparison ? '收起' : '展开' }}
+                    {{ showComparison ? t('common.collapse') : t('common.expand') }}
                     <component :is="showComparison ? ChevronUp : ChevronDown" class="w-3 h-3" />
                   </button>
                 </div>
@@ -407,7 +410,7 @@ watch(() => props.modelValue, (newVal) => {
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-[10px] px-2 py-0.5 rounded font-medium"
                         style="background: var(--bg-tertiary); color: var(--text-muted);"
-                      >优化前</span>
+                      >{{ t('optimizer.beforeOptimization') }}</span>
                     </div>
                     <pre class="text-xs whitespace-pre-wrap break-words" style="color: var(--text-secondary); max-height: 200px; overflow-y: auto;">{{ optimizeResult.originalPrompt || '无内容' }}</pre>
                   </div>
@@ -417,7 +420,7 @@ watch(() => props.modelValue, (newVal) => {
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-[10px] px-2 py-0.5 rounded font-medium"
                         style="background: rgba(34, 197, 94, 0.15); color: #22c55e;"
-                      >优化后</span>
+                      >{{ t('optimizer.afterOptimization') }}</span>
                     </div>
                     <pre class="text-xs whitespace-pre-wrap break-words" style="color: var(--text-primary); max-height: 200px; overflow-y: auto;">{{ optimizeResult.optimizedPrompt }}</pre>
                   </div>
@@ -432,16 +435,16 @@ watch(() => props.modelValue, (newVal) => {
               >
                 <Sparkles class="w-8 h-8" style="color: var(--text-muted);" />
               </div>
-              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">开始优化</p>
+              <p class="text-sm font-medium mb-1" style="color: var(--text-primary)">{{ t('optimizer.startOptimization') }}</p>
               <p class="text-xs text-center max-w-[300px]" style="color: var(--text-muted)">
-                点击下方按钮，AI 将分析您的提示词并提供优化建议
+                {{ t('optimizer.clickToAnalyze') }}
               </p>
               <button @click="handleOptimize(false)"
                 class="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
                 style="background: var(--accent); color: white;"
               >
                 <Sparkles class="w-4 h-4" />
-                开始分析
+                {{ t('optimizer.startAnalysis') }}
               </button>
             </div>
           </div>
@@ -456,14 +459,14 @@ watch(() => props.modelValue, (newVal) => {
               @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'"
               @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'"
             >
-              取消
+              {{ t('common.cancel') }}
             </button>
             <button @click="applyOptimization"
               class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
               style="background: var(--accent); color: white;"
             >
               <Check class="w-4 h-4" />
-              应用优化
+              {{ t('optimizer.applyOptimization') }}
             </button>
           </div>
         </div>

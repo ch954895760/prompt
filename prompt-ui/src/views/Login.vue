@@ -3,14 +3,21 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToastStore } from '@/stores/toast'
-import { Sparkles, Sun, Moon, Check, X, Eye, EyeOff } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import { Sparkles, Sun, Moon, Check, X, Eye, EyeOff, Languages } from 'lucide-vue-next'
+import { getLocale } from '@/i18n'
+import { useLanguageTransition } from '@/composables/useLanguageTransition'
 
 const router = useRouter()
 const userStore = useUserStore()
 const toastStore = useToastStore()
+const { t } = useI18n()
+
 const authMode = ref('login')
 const loading = ref(false)
 const shakeForm = ref(false)
+const currentLocale = ref(getLocale())
+const { toggleLocaleWithTransition } = useLanguageTransition()
 
 // 登录表单
 const loginForm = ref({ email: '', password: '', remember: false })
@@ -35,17 +42,17 @@ const loginErrors = computed(() => {
   
   if (loginTouched.value.email) {
     if (!loginForm.value.email) {
-      errors.email = '请输入邮箱'
+      errors.email = t('login.emailRequired')
     } else if (!emailRegex.test(loginForm.value.email)) {
-      errors.email = '请输入有效的邮箱地址'
+      errors.email = t('login.emailInvalid')
     }
   }
   
   if (loginTouched.value.password) {
     if (!loginForm.value.password) {
-      errors.password = '请输入密码'
+      errors.password = t('login.passwordRequired')
     } else if (loginForm.value.password.length < passwordMinLength) {
-      errors.password = `密码长度至少${passwordMinLength}位`
+      errors.password = t('login.passwordMinLength')
     }
   }
   
@@ -68,35 +75,35 @@ const registerErrors = computed(() => {
   
   if (registerTouched.value.username) {
     if (!registerForm.value.username) {
-      errors.username = '请输入用户名'
+      errors.username = t('login.usernameRequired')
     } else if (registerForm.value.username.length < 2) {
-      errors.username = '用户名至少2个字符'
+      errors.username = t('login.usernameMinLength')
     } else if (registerForm.value.username.length > 20) {
-      errors.username = '用户名最多20个字符'
+      errors.username = t('login.usernameMaxLength')
     }
   }
   
   if (registerTouched.value.email) {
     if (!registerForm.value.email) {
-      errors.email = '请输入邮箱'
+      errors.email = t('login.emailRequired')
     } else if (!emailRegex.test(registerForm.value.email)) {
-      errors.email = '请输入有效的邮箱地址'
+      errors.email = t('login.emailInvalid')
     }
   }
   
   if (registerTouched.value.password) {
     if (!registerForm.value.password) {
-      errors.password = '请输入密码'
+      errors.password = t('login.passwordRequired')
     } else if (registerForm.value.password.length < passwordMinLength) {
-      errors.password = `密码长度至少${passwordMinLength}位`
+      errors.password = t('login.passwordMinLength')
     }
   }
   
   if (registerTouched.value.confirmPassword) {
     if (!registerForm.value.confirmPassword) {
-      errors.confirmPassword = '请确认密码'
+      errors.confirmPassword = t('login.confirmPasswordRequired')
     } else if (registerForm.value.password !== registerForm.value.confirmPassword) {
-      errors.confirmPassword = '两次输入的密码不一致'
+      errors.confirmPassword = t('login.passwordMismatch')
     }
   }
   
@@ -118,6 +125,11 @@ watch(authMode, () => {
 
 function toggleTheme() {
   userStore.toggleTheme()
+}
+
+async function handleToggleLocale() {
+  const newLocale = await toggleLocaleWithTransition()
+  currentLocale.value = newLocale
 }
 
 function checkTheme() {
@@ -151,10 +163,10 @@ async function handleLogin() {
   loading.value = true
   try {
     await userStore.login(loginForm.value.email, loginForm.value.password, loginForm.value.remember)
-    toastStore.success('登录成功')
+    toastStore.success(t('user.loginSuccess'))
     router.push('/dashboard')
   } catch (e: any) {
-    toastStore.error(e.message || '登录失败')
+    toastStore.error(e.message || t('user.loginFailed'))
     // 触发表单晃动效果
     shakeForm.value = true
     setTimeout(() => {
@@ -175,10 +187,10 @@ async function handleRegister() {
 
   try {
     await userStore.register(registerForm.value.username, registerForm.value.email, registerForm.value.password)
-    toastStore.success('注册成功')
+    toastStore.success(t('user.registerSuccess'))
     router.push('/dashboard')
   } catch (e: any) {
-    toastStore.error(e.message || '注册失败')
+    toastStore.error(e.message || t('user.registerFailed'))
   } finally {
     loading.value = false
   }
@@ -195,9 +207,14 @@ async function handleRegister() {
     </div>
 
     <!-- Theme toggle -->
-    <button @click="toggleTheme" aria-label="切换主题" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
+    <button @click="toggleTheme" :aria-label="t('theme.toggle')" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
       <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
       <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
+    </button>
+
+    <!-- Language toggle -->
+    <button @click="handleToggleLocale" :aria-label="t('language.toggle')" class="absolute top-6 right-20 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
+      <Languages class="w-5 h-5" style="color: var(--text-secondary)" />
     </button>
 
     <div class="relative z-10 w-full max-w-md px-6">
@@ -205,8 +222,8 @@ async function handleRegister() {
         <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#ea580c] text-white mb-5 shadow-lg shadow-[#ea580c]/20">
           <Sparkles class="w-7 h-7" />
         </div>
-        <h1 class="text-3xl font-bold tracking-tight mb-2" style="font-family: 'Outfit', sans-serif; color: var(--text-primary)">Prompt Vault</h1>
-        <p class="text-sm" style="color: var(--text-secondary)">你的私人提示词库与创作工作台</p>
+        <h1 class="text-3xl font-bold tracking-tight mb-2" style="font-family: 'Outfit', sans-serif; color: var(--text-primary)">{{ t('login.title') }}</h1>
+        <p class="text-sm" style="color: var(--text-secondary)">{{ t('login.subtitle') }}</p>
       </div>
 
       <div class="animate-scale-in" style="animation-delay: 0.1s;">
@@ -216,19 +233,19 @@ async function handleRegister() {
               class="flex-1 py-2 text-sm font-medium rounded-lg transition-all"
               :class="authMode === 'login' ? 'bg-surface-800 text-white shadow-sm' : ''"
               :style="authMode === 'login' ? '' : 'color: var(--text-secondary)'"
-            >登录</button>
+            >{{ t('user.login') }}</button>
             <button @click="authMode = 'register'"
               class="flex-1 py-2 text-sm font-medium rounded-lg transition-all"
               :class="authMode === 'register' ? 'bg-surface-800 text-white shadow-sm' : ''"
               :style="authMode === 'register' ? '' : 'color: var(--text-secondary)'"
-            >注册</button>
+            >{{ t('user.register') }}</button>
           </div>
 
         <form v-if="authMode === 'login'" @submit.prevent="handleLogin">
           <div class="space-y-4">
             <!-- 邮箱输入 -->
             <div :class="{ 'shake-animation': shakeForm }">
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">邮箱</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.email') }}</label>
               <div class="relative">
                 <input 
                   v-model="loginForm.email" 
@@ -240,7 +257,7 @@ async function handleRegister() {
                   }"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                   :style="loginErrors.email ? 'border-color: #ef4444;' : (loginForm.email && !loginErrors.email && loginTouched.email ? 'border-color: #10b981;' : '')"
-                  placeholder="请输入邮箱，例如you@example.com"
+                  :placeholder="t('login.emailPlaceholder')"
                   @blur="handleLoginBlur('email')"
                 >
                 <!-- 验证状态图标 -->
@@ -258,7 +275,7 @@ async function handleRegister() {
 
             <!-- 密码输入 -->
             <div :class="{ 'shake-animation': shakeForm }">
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">密码</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.password') }}</label>
               <div class="relative">
                 <input 
                   v-model="loginForm.password" 
@@ -270,7 +287,7 @@ async function handleRegister() {
                   }"
                   :style="loginErrors.password ? 'border-color: #ef4444;' : (loginForm.password && !loginErrors.password && loginTouched.password ? 'border-color: #10b981;' : '')"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                  placeholder="请输入密码"
+                  :placeholder="t('login.passwordPlaceholder')"
                   @blur="handleLoginBlur('password')"
                 >
                 <!-- 显示密码按钮和验证状态 -->
@@ -278,7 +295,7 @@ async function handleRegister() {
                   <button
                     type="button"
                     @click="showLoginPassword = !showLoginPassword"
-                    :aria-label="showLoginPassword ? '隐藏密码' : '显示密码'"
+                    :aria-label="showLoginPassword ? t('common.hide') : t('common.show')"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
@@ -299,9 +316,9 @@ async function handleRegister() {
             <div class="flex items-center justify-between text-xs" style="color: var(--text-secondary)">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input v-model="loginForm.remember" type="checkbox" class="rounded border-gray-300">
-                <span>记住我</span>
+                <span>{{ t('user.rememberMe') }}</span>
               </label>
-              <a href="#" class="hover:underline" style="color: var(--accent)">忘记密码?</a>
+              <a href="#" class="hover:underline" style="color: var(--accent)">{{ t('user.forgotPassword') }}?</a>
             </div>
 
             <button
@@ -309,7 +326,7 @@ async function handleRegister() {
               :disabled="loading || !loginValid"
               class="w-full py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20 hover:shadow-[#ea580c]/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ loading ? '登录中...' : '登录' }}
+              {{ loading ? t('login.loggingIn') : t('user.login') }}
             </button>
           </div>
         </form>
@@ -318,7 +335,7 @@ async function handleRegister() {
           <div class="space-y-4">
             <!-- 用户名输入 -->
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">用户名</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.username') }}</label>
               <div class="relative">
                 <input 
                   v-model="registerForm.username" 
@@ -330,7 +347,7 @@ async function handleRegister() {
                   }"
                   :style="registerErrors.username ? 'border-color: #ef4444;' : (registerForm.username && !registerErrors.username && registerTouched.username ? 'border-color: #10b981;' : '')"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                  placeholder="请输入用户名"
+                  :placeholder="t('login.usernamePlaceholder')"
                   @blur="handleRegisterBlur('username')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -346,7 +363,7 @@ async function handleRegister() {
 
             <!-- 邮箱输入 -->
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">邮箱</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.email') }}</label>
               <div class="relative">
                 <input 
                   v-model="registerForm.email" 
@@ -358,7 +375,7 @@ async function handleRegister() {
                   }"
                   :style="registerErrors.email ? 'border-color: #ef4444;' : (registerForm.email && !registerErrors.email && registerTouched.email ? 'border-color: #10b981;' : '')"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                  placeholder="请输入邮箱，例如you@example.com"
+                  :placeholder="t('login.emailPlaceholder')"
                   @blur="handleRegisterBlur('email')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -374,7 +391,7 @@ async function handleRegister() {
 
             <!-- 密码输入 -->
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">密码</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.password') }}</label>
               <div class="relative">
                 <input 
                   v-model="registerForm.password" 
@@ -386,14 +403,14 @@ async function handleRegister() {
                   }"
                   :style="registerErrors.password ? 'border-color: #ef4444;' : (registerForm.password && !registerErrors.password && registerTouched.password ? 'border-color: #10b981;' : '')"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                  placeholder="请输入密码"
+                  :placeholder="t('login.passwordPlaceholder')"
                   @blur="handleRegisterBlur('password')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   <button
                     type="button"
                     @click="showRegisterPassword = !showRegisterPassword"
-                    :aria-label="showRegisterPassword ? '隐藏密码' : '显示密码'"
+                    :aria-label="showRegisterPassword ? t('common.hide') : t('common.show')"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
@@ -425,14 +442,14 @@ async function handleRegister() {
                   'text-yellow-500': registerForm.password.length >= 8 && registerForm.password.length < 12,
                   'text-emerald-500': registerForm.password.length >= 12
                 }">
-                  {{ registerForm.password.length < 8 ? '弱' : registerForm.password.length < 12 ? '中' : '强' }}
+                  {{ registerForm.password.length < 8 ? t('login.passwordWeak') : registerForm.password.length < 12 ? t('login.passwordMedium') : t('login.passwordStrong') }}
                 </span>
               </div>
             </div>
 
             <!-- 确认密码输入 -->
             <div>
-              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">确认密码</label>
+              <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('user.confirmPassword') }}</label>
               <div class="relative">
                 <input 
                   v-model="registerForm.confirmPassword" 
@@ -444,14 +461,14 @@ async function handleRegister() {
                   }"
                   :style="registerErrors.confirmPassword ? 'border-color: #ef4444;' : (registerForm.confirmPassword && !registerErrors.confirmPassword && registerTouched.confirmPassword ? 'border-color: #10b981;' : '')"
                   style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-                  placeholder="请再次输入密码"
+                  :placeholder="t('login.confirmPasswordPlaceholder')"
                   @blur="handleRegisterBlur('confirmPassword')"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   <button
                     type="button"
                     @click="showConfirmPassword = !showConfirmPassword"
-                    :aria-label="showConfirmPassword ? '隐藏确认密码' : '显示确认密码'"
+                    :aria-label="showConfirmPassword ? t('common.hide') : t('common.show')"
                     class="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                     style="color: var(--text-muted)"
                   >
@@ -466,10 +483,6 @@ async function handleRegister() {
                 <X class="w-3 h-3" />
                 {{ registerErrors.confirmPassword }}
               </p>
-              <p v-else-if="registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword" class="mt-1.5 text-xs text-emerald-500 flex items-center gap-1">
-                <Check class="w-3 h-3" />
-                密码匹配
-              </p>
             </div>
 
             <button
@@ -477,11 +490,22 @@ async function handleRegister() {
               :disabled="loading || !registerValid"
               class="w-full py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20 hover:shadow-[#ea580c]/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ loading ? '创建中...' : '创建账户' }}
+              {{ loading ? t('login.registering') : t('user.register') }}
             </button>
           </div>
         </form>
         </div>
+
+        <p class="text-center mt-6 text-sm" style="color: var(--text-secondary)">
+          {{ authMode === 'login' ? t('login.noAccount') : t('login.hasAccount') }}
+          <button 
+            @click="authMode = authMode === 'login' ? 'register' : 'login'"
+            class="font-medium hover:underline ml-1" 
+            style="color: var(--accent)"
+          >
+            {{ authMode === 'login' ? t('login.clickToRegister') : t('login.clickToLogin') }}
+          </button>
+        </p>
       </div>
     </div>
   </div>
@@ -489,25 +513,25 @@ async function handleRegister() {
 
 <style scoped>
 @keyframes shake {
-  0%, 100% { transform: translateX(0) scale(1); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px) scale(1); }
-  20%, 40%, 60%, 80% { transform: translateX(6px) scale(1); }
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
 }
 
 .shake-animation {
-  animation: shake 0.4s ease-in-out;
+  animation: shake 0.5s ease-in-out;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s ease forwards;
+  animation: scaleIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 

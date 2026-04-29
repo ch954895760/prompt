@@ -6,7 +6,9 @@ import { getTags, createTag, updateTag, deleteTag } from '@/api/tag'
 import type { Tag } from '@/types'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const toastStore = useToastStore()
 
 const tags = ref<Tag[]>([])
@@ -46,21 +48,21 @@ function openEditModal(tag: Tag) {
 
 async function handleSubmit() {
   if (!form.value.name.trim()) {
-    toastStore.warning('请输入标签名称')
+    toastStore.warning(t('tag.nameRequired'))
     return
   }
   try {
     if (modalMode.value === 'edit' && editingId.value) {
       await updateTag(editingId.value, form.value)
-      toastStore.success('标签已更新')
+      toastStore.success(t('tag.updateSuccess'))
     } else {
       await createTag(form.value)
-      toastStore.success('标签已创建')
+      toastStore.success(t('tag.createSuccess'))
     }
     showModal.value = false
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '操作失败')
+    toastStore.error(e.message || t('tag.operationFailed'))
   }
 }
 
@@ -76,10 +78,10 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
     await deleteTag(deleteTarget.value.id)
-    toastStore.success(`"${deleteTarget.value.name}" 已删除`)
+    toastStore.success(t('tag.deleteSuccess', { name: deleteTarget.value.name }))
     await loadData()
   } catch (e: any) {
-    toastStore.error(e.message || '删除失败')
+    toastStore.error(e.message || t('tag.deleteFailed'))
   } finally {
     deleteTarget.value = null
   }
@@ -93,22 +95,22 @@ onMounted(loadData)
     <div class="animate-fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">标签管理</h2>
-          <p class="text-sm" style="color: var(--text-secondary)">管理你的提示词标签</p>
+          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary)">{{ t('nav.tagManage') }}</h2>
+          <p class="text-sm" style="color: var(--text-secondary)">{{ t('tag.manageTags') }}</p>
         </div>
         <button @click="openCreateModal()"
           class="flex items-center gap-2 px-4 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-[#ea580c]/20"
         >
           <Plus class="w-4 h-4" />
-          新建标签
+          {{ t('tag.newTag') }}
         </button>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Tag list -->
         <div class="lg:col-span-2 rounded-2xl p-6" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          <div v-if="loading" class="text-center py-8" style="color: var(--text-muted)">加载中...</div>
-          <div v-else-if="tags.length === 0" class="text-center py-8" style="color: var(--text-muted)">暂无标签</div>
+          <div v-if="loading" class="text-center py-8" style="color: var(--text-muted)">{{ t('common.loading') }}</div>
+          <div v-else-if="tags.length === 0" class="text-center py-8" style="color: var(--text-muted)">{{ t('tag.noTags') }}</div>
           <div v-else class="flex flex-wrap gap-3">
             <div v-for="tag in tags" :key="tag.id"
               class="group flex items-center justify-between gap-4 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-md min-w-[140px]"
@@ -134,10 +136,10 @@ onMounted(loadData)
         <!-- Quick stats -->
         <div class="space-y-5">
           <div class="rounded-2xl p-5" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary)">标签统计</h4>
+            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary)">{{ t('tag.stats') }}</h4>
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <span class="text-xs" style="color: var(--text-secondary)">标签总数</span>
+                <span class="text-xs" style="color: var(--text-secondary)">{{ t('tag.totalTags') }}</span>
                 <span class="text-sm font-semibold" style="color: var(--text-primary)">{{ tags.length }}</span>
               </div>
             </div>
@@ -155,21 +157,21 @@ onMounted(loadData)
         style="background: var(--bg-secondary); border: 1px solid var(--border-color);"
       >
         <h3 class="font-semibold text-lg mb-4" style="color: var(--text-primary)">
-          {{ modalMode === 'create' ? '新建标签' : '编辑标签' }}
+          {{ modalMode === 'create' ? t('tag.createTitle') : t('tag.editTitle') }}
         </h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">标签名称</label>
+            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-secondary)">{{ t('tag.name') }}</label>
             <input v-model="form.name" type="text"
               class="w-full px-4 py-2.5 rounded-xl text-sm transition-all"
               style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
-              placeholder="输入标签名称"
+              :placeholder="t('tag.namePlaceholder')"
               @focus="($event.target as HTMLElement).style.borderColor = 'var(--accent)'"
               @blur="($event.target as HTMLElement).style.borderColor = 'var(--border-color)'"
             >
           </div>
           <div>
-            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">颜色</label>
+            <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary)">{{ t('tag.color') }}</label>
             <div class="flex gap-2 flex-wrap">
               <div v-for="color in colorOptions" :key="color"
                 class="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
@@ -185,12 +187,12 @@ onMounted(loadData)
             class="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
             style="color: var(--text-secondary);"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button @click="handleSubmit"
             class="flex-1 py-2.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-medium rounded-xl transition-all"
           >
-            {{ modalMode === 'create' ? '创建' : '更新' }}
+            {{ modalMode === 'create' ? t('common.create') : t('common.update') }}
           </button>
         </div>
       </div>
