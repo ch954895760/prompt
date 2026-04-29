@@ -1,82 +1,84 @@
 # Prompt Vault
 
 <p align="center">
+  <a href="./README_CN.md">🇨🇳 中文</a> | 🇺🇸 English
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Vue-3.4-%234FC08D?logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Spring%20Boot-2.7.x-%236DB33F?logo=springboot" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Java-1.8-%23ED8B00?logo=openjdk" alt="Java 1.8">
   <img src="https://img.shields.io/badge/TypeScript-5.x-%233178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/MySQL-8.0-%234479A1?logo=mysql" alt="MySQL">
-  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
+  <img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License">
 </p>
 
 <p align="center">
-  <strong>面向多用户的云端同步提示词管理工具</strong>
+  <strong>A Cloud-Synced Prompt Management Tool for Multi-User Environments</strong>
 </p>
 
-支持个人提示词库的建立、分类管理、变量模板、AI 集成测试等核心能力。
+Supports personal prompt library creation, category management, variable templates, AI integration testing, and more.
 
 ---
 
-## 预览
-
-> 以下截图将在发布后替换为真实页面截图
+## Preview
 
 <p align="center">
-  <img src="./doc/screenshots/placeholder-dashboard.png" alt="仪表盘" width="80%">
+  <img src="./doc/screenshots/placeholder-dashboard.png" alt="Dashboard" width="80%">
 </p>
-<p align="center">仪表盘</p>
+<p align="center">Dashboard</p>
 
 <p align="center">
-  <img src="./doc/screenshots/placeholder-prompt-editor.png" alt="提示词编辑" width="80%">
+  <img src="./doc/screenshots/placeholder-prompt-editor.png" alt="Prompt Editor" width="80%">
 </p>
-<p align="center">提示词编辑器</p>
+<p align="center">Prompt Editor</p>
 
 <p align="center">
-  <img src="./doc/screenshots/placeholder-category.png" alt="分类管理" width="80%">
+  <img src="./doc/screenshots/placeholder-category.png" alt="Category Management" width="80%">
 </p>
-<p align="center">分类管理</p>
+<p align="center">Category Management</p>
 
 <p align="center">
-  <img src="./doc/screenshots/placeholder-ai-test.png" alt="AI 测试" width="80%">
+  <img src="./doc/screenshots/placeholder-ai-test.png" alt="AI Testing" width="80%">
 </p>
-<p align="center">AI 测试</p>
+<p align="center">AI Testing</p>
 
 <p align="center">
-  <img src="./doc/screenshots/placeholder-ai-optimizer.png" alt="AI 提示词优化" width="80%">
+  <img src="./doc/screenshots/placeholder-ai-optimizer.png" alt="AI Prompt Optimizer" width="80%">
 </p>
-<p align="center">AI 提示词优化</p>
+<p align="center">AI Prompt Optimizer</p>
 
 ---
 
-## 功能特性
+## Features
 
-- 提示词库管理 — 创建、编辑、搜索、版本历史
-- 分类体系 — 多级嵌套分类，树形结构展示
-- 标签系统 — 自由打标，灵活筛选
-- 变量模板 — 动态占位符，一键替换
-- AI 提示词优化 — 智能优化提示词表达，提升输出质量
-- AI 集成测试 — 支持主流 AI 模型在线调试
-- 云端同步 — 多设备数据同步
-- 暗黑模式 — 支持浅色/深色主题切换
-- 导入导出 — JSON 格式数据迁移
-
----
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Tailwind CSS |
-| 后端 | Spring Boot 2.7.x + Java 1.8 + MyBatis-Plus |
-| 安全 | Spring Security + JWT |
-| 数据 | MySQL 8.0 + Redis |
-| 文档 | SpringDoc OpenAPI |
+- **Prompt Library Management** — Create, edit, search, and track version history
+- **Category System** — Multi-level nested categories with tree structure display
+- **Tag System** — Free tagging with flexible filtering
+- **Variable Templates** — Dynamic placeholders with one-click replacement
+- **AI Prompt Optimization** — Intelligent prompt enhancement for better output quality
+- **AI Integration Testing** — Online debugging with mainstream AI models
+- **Cloud Sync** — Multi-device data synchronization
+- **Dark Mode** — Light/Dark theme switching
+- **Import/Export** — JSON format data migration
 
 ---
 
-## 快速开始
+## Tech Stack
 
-### 环境要求
+| Layer | Technology |
+|-------|------------|
+| Frontend | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Tailwind CSS |
+| Backend | Spring Boot 2.7.x + Java 1.8 + MyBatis-Plus |
+| Security | Spring Security + JWT |
+| Data | MySQL 8.0 + Redis |
+| Documentation | SpringDoc OpenAPI |
+
+---
+
+## Quick Start
+
+### Requirements
 
 - Node.js >= 18
 - Java 1.8
@@ -84,30 +86,30 @@
 - MySQL 8.0
 - Redis >= 6.0
 
-### 1. 克隆仓库
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/ch954895760/prompt.git
 cd prompt
 ```
 
-### 2. 初始化数据库
+### 2. Initialize Database
 
 ```sql
 CREATE DATABASE prompt_vault CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 3. 启动后端
+### 3. Start Backend
 
 ```bash
 cd prompt-server
 ./mvnw spring-boot:run
 ```
 
-- API 文档: http://localhost:8080/swagger-ui.html
-- API 基础路径: http://localhost:8080/api
+- API Docs: http://localhost:8080/swagger-ui.html
+- API Base URL: http://localhost:8080/api
 
-### 4. 启动前端
+### 4. Start Frontend
 
 ```bash
 cd prompt-ui
@@ -115,79 +117,79 @@ npm install
 npm run dev
 ```
 
-- 开发服务器: http://localhost:5173
+- Dev Server: http://localhost:5173
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 prompt-vault/
-├── doc/                    # 项目文档
-│   ├── prototype.html      # UI 原型图
+├── doc/                    # Project documentation
+│   ├── prototype.html      # UI prototype
 │   └── IMPLEMENTATION_PLAN.md
-├── prompt-ui/              # Vue3 前端
+├── prompt-ui/              # Vue3 Frontend
 │   ├── src/
-│   │   ├── api/            # API 接口
-│   │   ├── views/          # 页面视图
-│   │   ├── stores/         # Pinia 状态管理
-│   │   ├── types/          # TypeScript 类型
-│   │   └── utils/          # 工具函数
+│   │   ├── api/            # API interfaces
+│   │   ├── views/          # Page views
+│   │   ├── stores/         # Pinia state management
+│   │   ├── types/          # TypeScript types
+│   │   └── utils/          # Utility functions
 │   └── package.json
-├── prompt-server/          # Spring Boot 后端
+├── prompt-server/          # Spring Boot Backend
 │   ├── src/main/java/com/prompt/
 │   │   ├── controller/     # REST API
-│   │   ├── service/        # 业务逻辑
-│   │   ├── mapper/         # 数据访问
-│   │   ├── entity/         # 实体类
-│   │   ├── dto/            # 传输对象
+│   │   ├── service/        # Business logic
+│   │   ├── mapper/         # Data access
+│   │   ├── entity/         # Entity classes
+│   │   ├── dto/            # Data transfer objects
 │   │   ├── security/       # JWT + Security
-│   │   └── exception/      # 全局异常处理
+│   │   └── exception/      # Global exception handling
 │   └── pom.xml
 └── README.md
 ```
 
 ---
 
-## API 概览
+## API Overview
 
-| 模块 | 接口 |
-|------|------|
-| 认证 | `POST /api/auth/register` / `login` / `refresh` |
-| 提示词 | `GET/POST/PUT/DELETE /api/prompts` |
-| 分类 | `GET/POST/PUT/DELETE /api/categories` |
-| 标签 | `GET/POST/DELETE /api/tags` |
-| 设置 | `GET/PUT /api/settings` |
+| Module | Endpoints |
+|--------|-----------|
+| Auth | `POST /api/auth/register` / `login` / `refresh` |
+| Prompts | `GET/POST/PUT/DELETE /api/prompts` |
+| Categories | `GET/POST/PUT/DELETE /api/categories` |
+| Tags | `GET/POST/DELETE /api/tags` |
+| Settings | `GET/PUT /api/settings` |
 
-完整 API 文档请访问 Swagger UI: http://localhost:8080/swagger-ui.html
+Full API documentation available at Swagger UI: http://localhost:8080/swagger-ui.html
 
 ---
 
-## 测试
+## Testing
 
-### 前端 E2E 测试
+### Frontend E2E Tests
 
 ```bash
 cd prompt-ui
 npx playwright test
 ```
 
-测试覆盖: 注册/登录、提示词 CRUD、变量预览、搜索、版本历史、导入导出、主题切换、AI 配置。
+Test Coverage: Registration/Login, Prompt CRUD, Variable Preview, Search, Version History, Import/Export, Theme Switching, AI Configuration.
 
 ---
 
-## 贡献
+## Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
-1. Fork 本仓库
-2. 创建分支: `git checkout -b feature/xxx`
-3. 提交改动: `git commit -m "feat: xxx"`
-4. 推送分支: `git push origin feature/xxx`
-5. 新建 Pull Request
+1. Fork this repository
+2. Create a branch: `git checkout -b feature/xxx`
+3. Commit changes: `git commit -m "feat: xxx"`
+4. Push to branch: `git push origin feature/xxx`
+5. Create a Pull Request
 
 ---
 
-## 开源协议
+## License
 
-本项目基于 [MIT License](LICENSE) 开源。
+This project is open-sourced under the [Apache License 2.0](LICENSE).
