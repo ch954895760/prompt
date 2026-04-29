@@ -41,6 +41,11 @@
 </p>
 <p align="center">AI 测试</p>
 
+<p align="center">
+  <img src="./doc/screenshots/placeholder-ai-optimizer.png" alt="AI 提示词优化" width="80%">
+</p>
+<p align="center">AI 提示词优化</p>
+
 ---
 
 ## 功能特性
