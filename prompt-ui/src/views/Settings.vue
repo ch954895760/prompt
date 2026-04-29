@@ -42,7 +42,7 @@ const deletingProvider = ref<AiProvider | null>(null)
 const showDeleteDialog = ref(false)
 const aiProviderForm = ref({
   name: '',
-  provider: 'openai',
+  provider: 'kimi',
   apiBaseUrl: '',
   apiKey: '',
   model: '',
@@ -64,14 +64,13 @@ const passwordForm = ref({
 })
 
 const providerOptions = [
-  { value: 'openai', label: 'OpenAI', icon: '⚡', models: ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
-  { value: 'anthropic', label: 'Anthropic Claude', icon: '🌟', models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20240620'] },
-  { value: 'google', label: 'Google Gemini', icon: '🔮', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'] },
-  { value: 'deepseek', label: 'DeepSeek', icon: '🐋', models: ['deepseek-chat', 'deepseek-coder'] },
-  { value: 'qwen', label: '通义千问', icon: '🌙', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
-  { value: 'wenxin', label: '文心一言', icon: '📚', models: ['ernie-bot-4', 'ernie-bot'] },
-  { value: 'minimax', label: 'MiniMax', icon: '🎭', models: ['MiniMax-M2.7', 'MiniMax-Text-01', 'abab6.5s'] },
   { value: 'custom', label: '自定义', icon: '⚙️', models: [] },
+  { value: 'kimi', label: 'Kimi', icon: '�', models: ['kimi-k2.5', 'kimi-k2.6'] },
+  { value: 'minimax', label: 'MiniMax', icon: '🎭', models: ['MiniMax-M2.5', 'MiniMax-M2.7'] },
+  { value: 'deepseek', label: 'DeepSeek', icon: '🐋', models: ['deepseek-v4-pro', 'deepseek-v4-flash'] },
+  { value: 'google', label: 'Google Gemini', icon: '🔮', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'] },
+  { value: 'anthropic', label: 'Anthropic Claude', icon: '�', models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20240620'] },
+  { value: 'openai', label: 'OpenAI', icon: '⚡', models: ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
 ]
 
 const currentProvider = computed(() => {
@@ -83,8 +82,8 @@ const defaultBaseUrls = {
   anthropic: 'https://api.anthropic.com',
   google: 'https://generativelanguage.googleapis.com',
   deepseek: 'https://api.deepseek.com',
-  qwen: 'https://dashscope.aliyuncs.com/api/v1',
-  wenxin: 'https://aip.baidubce.com',
+  minimax: 'https://api.minimaxi.com/v1',
+  kimi: 'https://api.moonshot.cn/v1',
   custom: '',
 } as const
 
@@ -163,10 +162,10 @@ function openAddAiProvider() {
   editingProvider.value = null
   aiProviderForm.value = {
     name: '',
-    provider: 'openai',
-    apiBaseUrl: defaultBaseUrls.openai,
+    provider: 'kimi',
+    apiBaseUrl: defaultBaseUrls.kimi,
     apiKey: '',
-    model: 'gpt-4',
+    model: 'kimi-k2.5',
     isDefault: aiProviders.value.length === 0,
   }
   showAiProviderApiKey.value = false
