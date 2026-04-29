@@ -11,6 +11,7 @@ import { useUserStore } from '@/stores/user'
 import type { UserSetting, AiProvider, AiProviderCreateRequest, AiProviderUpdateRequest } from '@/types'
 import { getAiProviders, createAiProvider, updateAiProvider, deleteAiProvider, setDefaultAiProvider } from '@/api/aiProvider'
 import { User, Palette, Eye, EyeOff, Sun, Moon, Plus, Edit2, Trash2, Check, X, Bot, Lock, KeyRound } from 'lucide-vue-next'
+import ThemeTransition from '@/components/ThemeTransition.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -533,17 +534,21 @@ onMounted(() => {
               <div class="text-sm font-medium mb-0.5" style="color: var(--text-primary)">{{ t('settings.darkMode') }}</div>
               <div class="text-xs" style="color: var(--text-muted)">{{ t('settings.darkModeDesc') }}</div>
             </div>
-            <button @click="toggleTheme"
-              class="relative w-12 h-7 rounded-full transition-colors"
-              :style="{ background: form.theme === 'dark' ? 'var(--accent)' : 'var(--bg-tertiary)' }"
-            >
-              <span class="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center"
-                :class="form.theme === 'dark' ? 'translate-x-6' : 'translate-x-1'"
-              >
-                <Sun v-if="form.theme !== 'dark'" class="w-3 h-3 text-amber-500" />
-                <Moon v-else class="w-3 h-3 text-indigo-500" />
-              </span>
-            </button>
+            <ThemeTransition :current-theme="form.theme" @toggle="toggleTheme">
+              <template #default="{ trigger }">
+                <button @click="trigger"
+                  class="relative w-12 h-7 rounded-full transition-colors"
+                  :style="{ background: form.theme === 'dark' ? 'var(--accent)' : 'var(--bg-tertiary)' }"
+                >
+                  <span class="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center"
+                    :class="form.theme === 'dark' ? 'translate-x-6' : 'translate-x-1'"
+                  >
+                    <Sun v-if="form.theme !== 'dark'" class="w-3 h-3 text-amber-500" />
+                    <Moon v-else class="w-3 h-3 text-indigo-500" />
+                  </span>
+                </button>
+              </template>
+            </ThemeTransition>
           </div>
         </div>
 

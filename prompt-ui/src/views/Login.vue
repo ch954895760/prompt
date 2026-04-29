@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { Sparkles, Sun, Moon, Check, X, Eye, EyeOff, Languages } from 'lucide-vue-next'
 import { getLocale } from '@/i18n'
 import { useLanguageTransition } from '@/composables/useLanguageTransition'
+import ThemeTransition from '@/components/ThemeTransition.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -127,6 +128,10 @@ function toggleTheme() {
   userStore.toggleTheme()
 }
 
+function handleThemeToggle() {
+  toggleTheme()
+}
+
 async function handleToggleLocale() {
   const newLocale = await toggleLocaleWithTransition()
   currentLocale.value = newLocale
@@ -206,11 +211,15 @@ async function handleRegister() {
       <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle, var(--text-primary) 1px, transparent 1px); background-size: 32px 32px;"></div>
     </div>
 
-    <!-- Theme toggle -->
-    <button @click="toggleTheme" :aria-label="t('theme.toggle')" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
-      <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
-      <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
-    </button>
+    <!-- Theme toggle with ripple animation -->
+    <ThemeTransition :current-theme="userStore.theme" @toggle="handleThemeToggle">
+      <template #default="{ trigger }">
+        <button @click="trigger" :aria-label="t('theme.toggle')" class="absolute top-6 right-6 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
+          <Sun v-if="userStore.theme === 'dark'" class="w-5 h-5" style="color: var(--text-secondary)" />
+          <Moon v-else class="w-5 h-5" style="color: var(--text-secondary)" />
+        </button>
+      </template>
+    </ThemeTransition>
 
     <!-- Language toggle -->
     <button @click="handleToggleLocale" :aria-label="t('language.toggle')" class="absolute top-6 right-20 w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] z-20">
